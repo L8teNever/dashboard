@@ -123,6 +123,15 @@
         </div>
       </sc-if>
 
+      <!-- Ganztägige Termine (Tagesansicht) -->
+      <sc-if value="{{ isDayMode }}" hint-placeholder-val="{{ true }}">
+        <div style="{{ dayAllDayBarStyle }}">
+          <sc-for list="{{ dayAllDayEvents }}" as="ev" hint-placeholder-count="2">
+            <div onClick="{{ ev.onClick }}" style="{{ ev.style }}">{{ ev.title }}</div>
+          </sc-for>
+        </div>
+      </sc-if>
+
       <!-- Calendar Schedule Grid -->
       <div style="display:flex; gap:10px;">
         <!-- Hours Gutter -->
@@ -169,6 +178,11 @@
                 <div style="text-align:center;">
                   <div style="font-size:10px; font-weight:600; text-transform:uppercase; opacity:0.7;">{{ col.top }}</div>
                   <div style="font-size:13px; font-weight:600;">{{ col.bottom }}</div>
+                </div>
+                <div style="{{ col.allDayBarStyle }}">
+                  <sc-for list="{{ col.allDayEvents }}" as="ev" hint-placeholder-count="1">
+                    <div onClick="{{ ev.onClick }}" style="{{ ev.style }}">{{ ev.title }}</div>
+                  </sc-for>
                 </div>
                 <div style="position:relative; height:{{ gridHeightPx }}px; border-radius:12px; background-image:repeating-linear-gradient(to bottom, var(--md-outline-variant) 0px, var(--md-outline-variant) 1px, transparent 1px, transparent 72px); background-color:var(--md-surface-container-lowest);">
                   <sc-if value="{{ col.showNowLine }}" hint-placeholder-val="{{ false }}">
@@ -874,7 +888,22 @@ class Component extends DCLogic {
   }
 
   buildEventsForDate(dateISO, START, END, now, s, forceCompact) {
-    const raw = (s.events || []).filter(e => e.date === dateISO).sort((a, b) => a.start - b.start);
+    const dayRaw = (s.events || []).filter(e => e.date === dateISO);
+    const raw = dayRaw.filter(e => !e.allDay).sort((a, b) => a.start - b.start);
+    const allDayEvents = dayRaw.filter(e => e.allDay).map(ev => {
+      const cat = this.categories[ev.cat] || this.categories.sonstiges;
+      return {
+        key: 'ad_' + ev.id,
+        title: ev.title,
+        onClick: () => this.setState({ detailEventId: ev.id }),
+        style: {
+          background: cat.bg, color: cat.fg, borderRadius: '8px', cursor: 'pointer',
+          padding: forceCompact ? '2px 6px' : '4px 10px',
+          fontSize: forceCompact ? '10px' : '12px', fontWeight: 600,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        },
+      };
+    });
     const events = raw.map(ev => {
       const cat = this.categories[ev.cat] || this.categories.sonstiges;
       const dragging = s.draggingId === ev.id;
@@ -905,7 +934,7 @@ class Component extends DCLogic {
     const nowMin = now.getHours() * 60 + now.getMinutes();
     const showNowLine = dateISO === this.dateISO(0) && nowMin >= START * 60 && nowMin <= END * 60;
     const nowLineTop = Math.max(0, (nowMin - START * 60) / 60 * 72);
-    return { events, showNowLine, nowLineTop };
+    return { events, allDayEvents, showNowLine, nowLineTop };
   }
 
   renderVals() {
@@ -969,6 +998,8 @@ class Component extends DCLogic {
 
     const dayData = this.buildEventsForDate(viewDateISO, START, END, now, s, false);
     const dayEvents = dayData.events;
+    const dayAllDayEvents = dayData.allDayEvents;
+    const dayAllDayBarStyle = { display: dayAllDayEvents.length ? 'flex' : 'none', gap: '8px', flexWrap: 'wrap', marginLeft: '58px', marginBottom: '8px' };
     const showNowLine = dayData.showNowLine;
     const nowLineTop = dayData.nowLineTop;
 
@@ -997,7 +1028,8 @@ class Component extends DCLogic {
         const d = new Date(); d.setDate(d.getDate() + offset); d.setHours(0, 0, 0, 0);
         const top = offset === 0 ? 'Heute' : offset === 1 ? 'Morgen' : this.WD[d.getDay()];
         const colData = this.buildEventsForDate(iso, START, END, now, s, true);
-        rangeColumns.push({ key: 'col_' + i, top, bottom: String(d.getDate()), events: colData.events, showNowLine: colData.showNowLine, nowLineTop: colData.nowLineTop });
+        const allDayBarStyle = { display: colData.allDayEvents.length ? 'flex' : 'none', flexDirection: 'column', gap: '3px' };
+        rangeColumns.push({ key: 'col_' + i, top, bottom: String(d.getDate()), events: colData.events, allDayEvents: colData.allDayEvents, allDayBarStyle, showNowLine: colData.showNowLine, nowLineTop: colData.nowLineTop });
       }
     }
 
@@ -1065,7 +1097,7 @@ class Component extends DCLogic {
       detail = {
         title: detailSrc.title, catLabel: cat.label, dot: cat.dot,
         dateLabel: this.dayLabelShort(detailSrc.date, todayISO, tomorrowISO) + ', ' + parts[2] + '.' + parts[1] + '.',
-        timeLabel: this.minutesToHHMM(detailSrc.start) + '-' + this.minutesToHHMM(detailSrc.end) + ' Uhr',
+        timeLabel: detailSrc.allDay ? 'Ganztägig' : (this.minutesToHHMM(detailSrc.start) + '-' + this.minutesToHHMM(detailSrc.end) + ' Uhr'),
         location: detailSrc.location || '', notes: detailSrc.notes || '',
         hasLocation: !!detailSrc.location, hasNotes: !!detailSrc.notes,
       };
@@ -1092,6 +1124,7 @@ class Component extends DCLogic {
       quickAddTime: s.quickAddTime, onQuickAddTimeChange: this.onQuickAddTimeChange,
       categoryOptions, confirmQuickAdd: this.confirmQuickAdd,
       gridHeightPx, gridHours, gutterMarginTop, showNowLine, nowLineTop, dayEvents, rangeColumns,
+      dayAllDayEvents, dayAllDayBarStyle,
       detail, closeDetail: this.closeDetail, stopClickPropagation: (e) => e.stopPropagation(),
       quickAddNotes: s.quickAddNotes, onQuickAddNotesChange: this.onQuickAddNotesChange,
       importantMails,

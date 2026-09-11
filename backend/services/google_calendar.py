@@ -121,29 +121,51 @@ class GoogleCalendarService:
                 
                 parsed_events = []
                 for idx, item in enumerate(items):
-                    start_raw = item['start'].get('dateTime', item['start'].get('date'))
-                    end_raw = item['end'].get('dateTime', item['end'].get('date'))
-                    
-                    if 'T' in start_raw:
-                        dt_start = datetime.datetime.fromisoformat(start_raw.replace('Z', '+00:00'))
-                        dt_end = datetime.datetime.fromisoformat(end_raw.replace('Z', '+00:00'))
-                        date_iso = dt_start.strftime('%Y-%m-%d')
-                        start_min = dt_start.hour * 60 + dt_start.minute
-                        end_min = dt_end.hour * 60 + dt_end.minute
-                    else:
-                        date_iso = start_raw
-                        start_min = 480  # Default 08:00 for all-day events
-                        end_min = 1020   # Default 17:00
+                    event_id = item.get('id', idx + 100)
+                    title = item.get('summary', 'Termin')
+                    cat = self._guess_category(title)
+                    location = item.get('location', '')
+                    notes = item.get('description', '')
+                    is_all_day = 'date' in item['start'] and 'dateTime' not in item['start']
+
+                    if is_all_day:
+                        # Google gibt beim ganztägigen Termin ein Start- und ein Enddatum, wobei
+                        # das Enddatum EXKLUSIV ist (z.B. Start 11., Ende 13. = geht über den
+                        # 11. und 12.). Pro abgedecktem Tag einen eigenen Eintrag anlegen, damit
+                        # mehrtägige Termine in jeder Tagesansicht auftauchen.
+                        start_date = datetime.date.fromisoformat(item['start']['date'])
+                        end_date = datetime.date.fromisoformat(item['end']['date'])
+                        span_days = max((end_date - start_date).days, 1)
+                        for day_offset in range(span_days):
+                            day = start_date + datetime.timedelta(days=day_offset)
+                            parsed_events.append({
+                                "id": f"{event_id}-{day_offset}" if span_days > 1 else event_id,
+                                "date": day.strftime('%Y-%m-%d'),
+                                "start": None,
+                                "end": None,
+                                "allDay": True,
+                                "title": title,
+                                "cat": cat,
+                                "location": location,
+                                "notes": notes
+                            })
+                        continue
+
+                    dt_start = datetime.datetime.fromisoformat(item['start']['dateTime'].replace('Z', '+00:00'))
+                    dt_end = datetime.datetime.fromisoformat(item['end']['dateTime'].replace('Z', '+00:00'))
+                    start_min = dt_start.hour * 60 + dt_start.minute
+                    end_min = dt_end.hour * 60 + dt_end.minute
 
                     parsed_events.append({
-                        "id": item.get('id', idx + 100),
-                        "date": date_iso,
+                        "id": event_id,
+                        "date": dt_start.strftime('%Y-%m-%d'),
                         "start": start_min,
                         "end": max(end_min, start_min + 30),
-                        "title": item.get('summary', 'Termin'),
-                        "cat": self._guess_category(item.get('summary', '')),
-                        "location": item.get('location', ''),
-                        "notes": item.get('description', '')
+                        "allDay": False,
+                        "title": title,
+                        "cat": cat,
+                        "location": location,
+                        "notes": notes
                     })
                 return parsed_events
             except Exception as e:

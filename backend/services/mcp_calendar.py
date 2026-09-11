@@ -76,7 +76,7 @@ class MCPCalendarService:
                 f"(Schlüssel 'events'/'items' fehlen oder sind leer). Rohdaten (gekürzt): {str(payload)[:1000]}"
             )
             return []
-        parsed = [e for e in (self._parse_event(idx, item) for idx, item in enumerate(items)) if e is not None]
+        parsed = [e for idx, item in enumerate(items) for e in self._parse_event(idx, item)]
         if not parsed:
             logger.warning(
                 f"MCP-Event-Tool '{self.events_tool}' lieferte {len(items)} Einträge, aber keiner hatte ein "
@@ -169,7 +169,8 @@ class MCPCalendarService:
 
     @classmethod
     def _minutes_and_date(cls, raw):
-        """Accepts a Google-style {"dateTime"|"date": ...} dict or a plain ISO string."""
+        """Accepts a Google-style {"dateTime"|"date": ...} dict or a plain ISO string.
+        Minutes is None for an all-day (date-only) value."""
         import datetime
 
         if isinstance(raw, dict):
@@ -180,30 +181,61 @@ class MCPCalendarService:
             if "T" in raw:
                 dt = datetime.datetime.fromisoformat(raw.replace("Z", "+00:00"))
                 return dt.strftime("%Y-%m-%d"), dt.hour * 60 + dt.minute
+            datetime.date.fromisoformat(raw)  # validate shape
             return raw, None
         except ValueError:
             return None, None
 
     def _parse_event(self, idx, item):
+        import datetime
+
         if not isinstance(item, dict):
-            return None
+            return []
         date_start, start_min = self._minutes_and_date(self._first(item, "start", "startTime", "start_time"))
         date_end, end_min = self._minutes_and_date(self._first(item, "end", "endTime", "end_time"))
         if date_start is None:
-            return None
-        if start_min is None:
-            start_min, end_min = 480, 1020  # ganztägig -> Default 08:00-17:00
+            return []
 
-        return {
-            "id": item.get("id", idx + 1),
+        event_id = item.get("id", idx + 1)
+        title = self._first(item, "title", "summary") or "Termin"
+        cat = self._first(item, "cat", "category") or "mcp"
+        location = self._first(item, "location") or ""
+        notes = self._first(item, "notes", "description") or ""
+
+        if start_min is None:
+            # Ganztägig. Enddatum -- wie bei Google -- als exklusiv behandeln, um pro
+            # abgedecktem Tag einen eigenen Eintrag zu erzeugen (mehrtägige Termine
+            # sollen in jeder betroffenen Tagesansicht auftauchen).
+            start_date = datetime.date.fromisoformat(date_start)
+            end_date = datetime.date.fromisoformat(date_end) if date_end else start_date + datetime.timedelta(days=1)
+            span_days = max((end_date - start_date).days, 1)
+            events = []
+            for day_offset in range(span_days):
+                day = start_date + datetime.timedelta(days=day_offset)
+                events.append({
+                    "id": f"{event_id}-{day_offset}" if span_days > 1 else event_id,
+                    "date": day.strftime("%Y-%m-%d"),
+                    "start": None,
+                    "end": None,
+                    "allDay": True,
+                    "title": title,
+                    "cat": cat,
+                    "location": location,
+                    "notes": notes,
+                })
+            return events
+
+        return [{
+            "id": event_id,
             "date": date_start,
             "start": start_min,
             "end": max(end_min or start_min + 30, start_min + 30),
-            "title": self._first(item, "title", "summary") or "Termin",
-            "cat": self._first(item, "cat", "category") or "mcp",
-            "location": self._first(item, "location") or "",
-            "notes": self._first(item, "notes", "description") or "",
-        }
+            "allDay": False,
+            "title": title,
+            "cat": cat,
+            "location": location,
+            "notes": notes,
+        }]
 
     def _parse_task(self, idx, item):
         if not isinstance(item, dict):
