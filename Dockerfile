@@ -17,5 +17,6 @@ COPY . .
 ENV PORT=5000
 ENV USE_GEVENT=true
 EXPOSE 5000
+EXPOSE 5001
 
 CMD ["python", "app.py"]

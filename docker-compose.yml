@@ -19,8 +19,31 @@ services:
       - GOOGLE_CALENDAR_ID=${GOOGLE_CALENDAR_ID:-primary}
       - GOOGLE_CREDENTIALS_PATH=/app/credentials.json
       - GOOGLE_TOKEN_PATH=/app/token.json
+    volumes:
+      - dashboard-data:/app/data
     # Optional: nur einkommentieren, wenn credentials.json / token.json
     # lokal vorhanden sind (siehe README, Google-Calendar-Integration).
     # volumes:
     #   - ./credentials.json:/app/credentials.json:ro
     #   - ./token.json:/app/token.json
+
+  # Eigener MCP-Server des Dashboards (zweiter Port): hierüber kann eine KI
+  # Termine/Hausaufgaben/Todos anlegen, bearbeiten und löschen. Läuft im
+  # selben Image, teilt sich die SQLite-Datenbank per Volume mit "dashboard".
+  mcp-server:
+    image: ghcr.io/l8tenever/dashboard:latest
+    pull_policy: always
+    container_name: meintag-dashboard-mcp
+    restart: unless-stopped
+    command: ["python", "mcp_server.py"]
+    ports:
+      - "5001:5001"
+    environment:
+      - DASHBOARD_MCP_HOST=0.0.0.0
+      - DASHBOARD_MCP_PORT=5001
+      - DASHBOARD_MCP_AUTH_TOKEN=${DASHBOARD_MCP_AUTH_TOKEN:?Bitte DASHBOARD_MCP_AUTH_TOKEN in der .env setzen}
+    volumes:
+      - dashboard-data:/app/data
+
+volumes:
+  dashboard-data:

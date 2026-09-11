@@ -2,6 +2,7 @@ import os
 
 from flask import Blueprint, jsonify, send_from_directory
 
+from . import store
 from .services.calendar_provider import calendar_service
 from .services.weather_service import weather_service
 from .state import dashboard_state
@@ -36,13 +37,13 @@ def get_weather():
 
 @routes_bp.route("/api/events")
 def get_events():
-    events = calendar_service.get_events()
+    events = calendar_service.get_events() + store.list_events()
     return jsonify({"events": events, "google_connected": calendar_service.is_connected()})
 
 
 @routes_bp.route("/api/tasks")
 def get_tasks():
-    tasks = calendar_service.get_tasks()
+    tasks = calendar_service.get_tasks() + store.list_tasks()
     return jsonify({"tasks": tasks, "google_connected": calendar_service.is_connected()})
 
 
