@@ -17,6 +17,7 @@ services:
       - MCP_TASKS_TOOL=${MCP_TASKS_TOOL:-}
       - MCP_TOOL_ARGS=${MCP_TOOL_ARGS:-{}}
       - MCP_TOOL_TIMEOUT=${MCP_TOOL_TIMEOUT:-20}
+      - DASHBOARD_MCP_AUTH_TOKEN=${DASHBOARD_MCP_AUTH_TOKEN:-}
       - GOOGLE_CALENDAR_ID=${GOOGLE_CALENDAR_ID:-primary}
       - GOOGLE_CREDENTIALS_PATH=/app/credentials.json
       - GOOGLE_TOKEN_PATH=/app/token.json
@@ -43,6 +44,7 @@ services:
       - DASHBOARD_MCP_HOST=0.0.0.0
       - DASHBOARD_MCP_PORT=5001
       - DASHBOARD_MCP_AUTH_TOKEN=${DASHBOARD_MCP_AUTH_TOKEN:?Bitte DASHBOARD_MCP_AUTH_TOKEN in der .env setzen}
+      - DASHBOARD_INTERNAL_URL=${DASHBOARD_INTERNAL_URL:-http://dashboard:5000}
     volumes:
       - dashboard-data:/app/data
 

@@ -120,7 +120,9 @@ Danach `docker compose up -d` (oder `docker compose restart`, falls der Containe
 
 `mcp_server.py` ist ein **eigener MCP-Server**, getrennt vom Dashboard selbst, auf einem zweiten Port. Er ist die Umkehrung von `MCP_SERVER_URL` oben: dort holt sich *dieses* Dashboard Daten von einem fremden Server, hier ist *dieses* Dashboard selbst der Server, mit dem sich eine KI (z.B. ein Mail-Assistent mit Gmail-Zugriff) verbindet, um Termine sowie Hausaufgaben/Todos direkt auf dem Dashboard anzulegen, zu bearbeiten und zu löschen.
 
-**Typischer Anwendungsfall:** Eine KI mit Zugriff auf ein Postfach erkennt eine wichtige E-Mail (z.B. Einladung zum Elternabend) und ruft darauf `create_event` auf diesem MCP-Server auf. Der Termin taucht danach automatisch auf dem Dashboard auf (Anzeige aktualisiert Termine/Tasks alle 5 Minuten). Das Lesen der E-Mails übernimmt die KI selbst (z.B. über ein Gmail-MCP) — dieses Projekt stellt nur die Werkzeuge zum Schreiben auf das Dashboard bereit.
+**Typischer Anwendungsfall:** Eine KI mit Zugriff auf ein Postfach erkennt eine wichtige E-Mail (z.B. Einladung zum Elternabend) und ruft darauf `create_event` auf diesem MCP-Server auf. Der Termin taucht danach **sofort** auf allen offenen Dashboard-Seiten auf (Live-Update per Socket.IO, kein Warten auf das Polling-Intervall nötig — das läuft als Sicherheitsnetz alle 5 Minuten trotzdem mit, z.B. falls kurz kein Client verbunden war). Das Lesen der E-Mails übernimmt die KI selbst (z.B. über ein Gmail-MCP) — dieses Projekt stellt nur die Werkzeuge zum Schreiben auf das Dashboard bereit.
+
+Technisch: nach jeder erfolgreichen Änderung ruft `mcp_server.py` intern `POST /internal/notify-update` auf der `dashboard`-Seite auf (per Docker-Compose-internem Hostnamen `dashboard`, siehe `DASHBOARD_INTERNAL_URL`), die App broadcastet daraufhin ein `data_changed`-Socket.IO-Event an alle verbundenen Browser. Schlägt dieser interne Aufruf mal fehl (z.B. Dashboard startet gerade neu), ist das egal — die Änderung ist trotzdem gespeichert, sie erscheint dann beim nächsten Poll.
 
 ### Angebotene Tools
 

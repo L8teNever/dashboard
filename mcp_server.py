@@ -21,6 +21,7 @@ import os
 from typing import Optional
 from urllib.parse import parse_qs
 
+import requests
 from mcp.server.fastmcp import FastMCP
 from starlette.responses import JSONResponse
 
@@ -32,14 +33,26 @@ logger = logging.getLogger("dashboard_mcp")
 AUTH_TOKEN = os.getenv("DASHBOARD_MCP_AUTH_TOKEN")
 HOST = os.getenv("DASHBOARD_MCP_HOST", "0.0.0.0")
 PORT = int(os.getenv("DASHBOARD_MCP_PORT", "5001"))
+DASHBOARD_INTERNAL_URL = os.getenv("DASHBOARD_INTERNAL_URL", "http://dashboard:5000")
+
+
+def _notify_dashboard():
+    """Tells the dashboard to push a live refresh to connected browsers. Best-effort: the
+    change is already saved either way, this is just for instant updates instead of
+    waiting for the dashboard's own poll interval."""
+    try:
+        headers = {"Authorization": f"Bearer {AUTH_TOKEN}"} if AUTH_TOKEN else {}
+        requests.post(f"{DASHBOARD_INTERNAL_URL}/internal/notify-update", headers=headers, timeout=5)
+    except Exception as e:
+        logger.warning(f"Dashboard konnte nicht über die Änderung benachrichtigt werden (Polling greift trotzdem): {e}")
 
 mcp = FastMCP(
     name="MeinTag Dashboard",
     instructions=(
         "Werkzeuge, um Termine sowie Hausaufgaben/Todos auf dem MeinTag-Dashboard "
         "zu verwalten -- z.B. um automatisch einen Termin aus einer wichtigen "
-        "E-Mail anzulegen. Änderungen erscheinen innerhalb weniger Minuten auf "
-        "dem Dashboard (Polling-Intervall der Anzeige)."
+        "E-Mail anzulegen. Änderungen werden sofort per Live-Update an offene "
+        "Dashboard-Seiten geschickt."
     ),
     host=HOST,
     port=PORT,
@@ -92,6 +105,7 @@ def create_event(
         location=location,
         notes=notes,
     )
+    _notify_dashboard()
     return _event_out(event)
 
 
@@ -119,6 +133,7 @@ def update_event(
     )
     if event is None:
         raise ValueError(f"Termin '{event_id}' wurde nicht gefunden.")
+    _notify_dashboard()
     return _event_out(event)
 
 
@@ -127,6 +142,7 @@ def delete_event(event_id: str) -> dict:
     """Löscht einen über diesen Server angelegten Termin (event_id aus list_events)."""
     if not store.delete_event(event_id):
         raise ValueError(f"Termin '{event_id}' wurde nicht gefunden.")
+    _notify_dashboard()
     return {"deleted": event_id}
 
 
@@ -143,7 +159,9 @@ def create_task(title: str, type: str = "todo", done: bool = False) -> dict:
 
     type: "hausaufgabe" oder "todo"
     """
-    return store.create_task(title=title, type=type, done=done)
+    task = store.create_task(title=title, type=type, done=done)
+    _notify_dashboard()
+    return task
 
 
 @mcp.tool()
@@ -157,6 +175,7 @@ def update_task(
     task = store.update_task(task_id, title=title, done=done, type=type)
     if task is None:
         raise ValueError(f"Aufgabe '{task_id}' wurde nicht gefunden.")
+    _notify_dashboard()
     return task
 
 
@@ -165,6 +184,7 @@ def delete_task(task_id: str) -> dict:
     """Löscht eine Hausaufgabe/Todo (task_id aus list_tasks)."""
     if not store.delete_task(task_id):
         raise ValueError(f"Aufgabe '{task_id}' wurde nicht gefunden.")
+    _notify_dashboard()
     return {"deleted": task_id}
 
 

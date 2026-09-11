@@ -1,11 +1,13 @@
 import os
 
-from flask import Blueprint, jsonify, send_from_directory
+from flask import Blueprint, jsonify, request, send_from_directory
 
-from . import store
+from . import socketio, store
 from .services.calendar_provider import calendar_service
 from .services.weather_service import weather_service
 from .state import dashboard_state
+
+INTERNAL_NOTIFY_TOKEN = os.getenv("DASHBOARD_MCP_AUTH_TOKEN")
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
@@ -56,3 +58,18 @@ def get_status():
             "google_calendar_connected": calendar_service.is_connected(),
         }
     )
+
+
+@routes_bp.route("/internal/notify-update", methods=["POST"])
+def notify_update():
+    """
+    Called by mcp_server.py after it creates/edits/deletes an event or
+    task, so the dashboard can push a live refresh to connected browsers
+    instead of waiting for the next poll interval.
+    """
+    if INTERNAL_NOTIFY_TOKEN:
+        auth = request.headers.get("Authorization", "")
+        if auth != f"Bearer {INTERNAL_NOTIFY_TOKEN}":
+            return jsonify({"error": "unauthorized"}), 401
+    socketio.emit("data_changed", {})
+    return jsonify({"ok": True})

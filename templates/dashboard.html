@@ -600,6 +600,7 @@ class Component extends DCLogic {
       this.socket = io();
       this.socket.on('connect', () => this.setState({ connected: true }));
       this.socket.on('disconnect', () => this.setState({ connected: false }));
+      this.socket.on('data_changed', () => this.fetchCalendarEvents());
       this.socket.on('state_sync', (data) => {
         if (data) {
           this.setState({
