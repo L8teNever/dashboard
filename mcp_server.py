@@ -19,6 +19,7 @@ Start: python mcp_server.py  (siehe docker-compose.yml, Service "mcp-server")
 import logging
 import os
 from typing import Optional
+from urllib.parse import parse_qs
 
 from mcp.server.fastmcp import FastMCP
 from starlette.responses import JSONResponse
@@ -177,8 +178,10 @@ class BearerAuthMiddleware:
     async def __call__(self, scope, receive, send):
         if self.token and scope["type"] == "http":
             headers = dict(scope.get("headers") or [])
-            auth = headers.get(b"authorization", b"").decode()
-            if auth != f"Bearer {self.token}":
+            auth_header = headers.get(b"authorization", b"").decode()
+            query_params = parse_qs(scope.get("query_string", b"").decode())
+            token_param = (query_params.get("token") or [None])[0]
+            if auth_header != f"Bearer {self.token}" and token_param != self.token:
                 response = JSONResponse({"error": "unauthorized"}, status_code=401)
                 await response(scope, receive, send)
                 return

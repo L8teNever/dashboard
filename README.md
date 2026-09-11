@@ -142,6 +142,10 @@ Die Daten liegen in einer eigenen SQLite-Datenbank (`backend/store.py`, Volume `
    DASHBOARD_MCP_AUTH_TOKEN=<erzeugtes Token>
    ```
 2. `docker compose up -d` — der Service `mcp-server` startet zusätzlich zu `dashboard` und ist unter Port `5001` erreichbar (Streamable-HTTP-Endpunkt: `http://<server>:5001/mcp`).
-3. Die KI/den Client mit `MCP_SERVER_URL=http://<server>:5001/mcp` und `Authorization: Bearer <Token>` verbinden.
+3. Die KI/den Client verbinden — das Token kann wahlweise als URL-Parameter oder als Header mitgegeben werden (praktisch, wenn der Client wie bei "Ida - Google" nur eine einzelne URL akzeptiert):
+   ```
+   http://<server>:5001/mcp?token=<Token>
+   ```
+   oder gleichwertig `http://<server>:5001/mcp` mit Header `Authorization: Bearer <Token>`.
 
-**Sicherheit:** Ohne `DASHBOARD_MCP_AUTH_TOKEN` startet der `mcp-server`-Container gar nicht erst (siehe `docker-compose.yml`) — jede Anfrage ohne oder mit falschem Bearer-Token bekommt `401 Unauthorized`. Den Port `5001` nur erreichbar machen, wenn die KI, die ihn nutzen soll, auch wirklich von dort zugreifen kann/soll (z.B. per Firewall/Reverse-Proxy einschränken, falls der Server öffentlich erreichbar ist).
+**Sicherheit:** Ohne `DASHBOARD_MCP_AUTH_TOKEN` startet der `mcp-server`-Container gar nicht erst (siehe `docker-compose.yml`) — jede Anfrage ohne oder mit falschem Token (URL-Parameter oder Bearer-Header) bekommt `401 Unauthorized`. Den Port `5001` nur erreichbar machen, wenn die KI, die ihn nutzen soll, auch wirklich von dort zugreifen kann/soll (z.B. per Firewall/Reverse-Proxy einschränken, falls der Server öffentlich erreichbar ist).
