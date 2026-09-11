@@ -8,7 +8,7 @@ Ein interaktives, modernes Dashboard mit Echtzeit-Fernbedienung (Steuerung) und 
   - **Tab / Ansicht wechseln**: *Tag*, *3 Tage*, *Woche* umschalten.
   - **Datum navigieren**: *Zurück* / *Weiter* Tasten verschieben die angezeigte Zeitspanne live auf dem Dashboard.
   - **Wetter Pop-Up**: Klick auf "Wetter" öffnet/schließt das detaillierte Wetter-Popup-Modal direkt auf der Dashboard-Seite.
-- **Google Calendar & Tasks Integration (`google_calendar.py`)**:
+- **Google Calendar & Tasks Integration (`backend/services/google_calendar.py`)**:
   - Modular strukturierter Service für automatischen Abruf von Google-Kalender-Terminen und Aufgaben.
   - Funktioniert out-of-the-box mit Beispieldaten; sobald `credentials.json` hinterlegt ist, holt das Backend automatisch Ihre echten Termine!
 - **Docker Ready**: Vollständig vorkonfiguriert mit `Dockerfile` und `docker-compose.yml`.
@@ -43,6 +43,32 @@ docker compose up -d
    ```bash
    python app.py
    ```
+
+---
+
+## 📁 Projektstruktur
+
+```
+Dashboard/
+├── app.py                          # Einstiegspunkt (erstellt App, startet SocketIO-Server)
+├── backend/
+│   ├── __init__.py                 # App-Factory (create_app), Flask- & SocketIO-Setup
+│   ├── routes.py                   # HTTP-Routen (/, /steuerung, /api/*)
+│   ├── sockets.py                  # SocketIO-Event-Handler (Echtzeit-Sync)
+│   ├── state.py                    # Gemeinsamer Dashboard-Zustand
+│   └── services/
+│       ├── google_calendar.py      # Google Calendar & Tasks Integration
+│       └── weather_service.py      # Open-Meteo Wetter-Anbindung
+├── templates/
+│   ├── dashboard.html              # Dashboard-Seite
+│   └── steuerung.html              # Fernbedienung-Seite
+├── static/
+│   └── js/
+│       └── support.js              # Gemeinsames Frontend-JS
+├── Dockerfile
+├── docker-compose.yml
+└── .github/workflows/docker-publish.yml
+```
 
 ---
 
