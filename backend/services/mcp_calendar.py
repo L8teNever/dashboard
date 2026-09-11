@@ -25,6 +25,7 @@ class MCPCalendarService:
       MCP_EVENTS_TOOL   Tool name to call for events (default: "list-events")
       MCP_TASKS_TOOL    Tool name to call for tasks (optional, skipped if unset)
       MCP_TOOL_ARGS     Optional JSON object merged into every tool call
+      MCP_TOOL_TIMEOUT  Seconds to wait for a tool call before giving up (default: 20)
 
     The called tool must return either structured content (MCP's
     `structuredContent`) or a JSON string as its first text block.
@@ -45,6 +46,12 @@ class MCPCalendarService:
         except json.JSONDecodeError:
             logger.error("MCP_TOOL_ARGS ist kein gültiges JSON, wird ignoriert.")
             self.extra_args = {}
+
+        try:
+            self.timeout = float(os.getenv("MCP_TOOL_TIMEOUT", "20"))
+        except ValueError:
+            logger.error("MCP_TOOL_TIMEOUT ist keine gültige Zahl, verwende 20s.")
+            self.timeout = 20.0
 
         self._connected = False
 
@@ -96,8 +103,16 @@ class MCPCalendarService:
         if not self.is_configured() or not tool_name:
             return None
         try:
-            result = asyncio.run(self._call_tool_async(tool_name))
+            result = asyncio.run(asyncio.wait_for(self._call_tool_async(tool_name), timeout=self.timeout))
+            logger.info(f"MCP-Tool '{tool_name}' auf {self.server_url} hat innerhalb von {self.timeout}s geantwortet.")
             return self._extract_payload(result)
+        except asyncio.TimeoutError:
+            logger.error(
+                f"MCP-Tool-Aufruf '{tool_name}' auf {self.server_url} hat nach {self.timeout}s nicht "
+                "geantwortet (Timeout) -- der Server hat entweder gar nicht reagiert, oder das Tool "
+                "läuft ungewöhnlich lange. MCP_TOOL_TIMEOUT in der .env erhöhen, falls das erwartet ist."
+            )
+            return None
         except Exception as e:
             logger.error(f"MCP-Tool-Aufruf '{tool_name}' auf {self.server_url} fehlgeschlagen: {e}")
             return None
@@ -107,6 +122,7 @@ class MCPCalendarService:
         async with streamablehttp_client(self.server_url, headers=headers) as (read, write, _):
             async with ClientSession(read, write) as session:
                 await session.initialize()
+                logger.info(f"MCP-Session bereit, rufe Tool '{tool_name}' auf (Argumente: {self.extra_args})...")
                 return await session.call_tool(tool_name, self.extra_args)
 
     @staticmethod
