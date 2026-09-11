@@ -185,5 +185,3 @@ class GoogleCalendarService:
         if any(w in summary_lower for w in ['familie', 'geburtstag', 'oma', 'opa', 'eltern', 'essen']):
             return 'familie'
         return 'sonstiges'
-
-calendar_service = GoogleCalendarService()

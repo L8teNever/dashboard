@@ -2,7 +2,7 @@ import os
 
 from flask import Blueprint, jsonify, send_from_directory
 
-from .services.google_calendar import calendar_service
+from .services.calendar_provider import calendar_service
 from .services.weather_service import weather_service
 from .state import dashboard_state
 
