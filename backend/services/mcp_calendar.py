@@ -63,7 +63,19 @@ class MCPCalendarService:
         if payload is None:
             return []
         items = payload if isinstance(payload, list) else payload.get("events") or payload.get("items") or []
-        return [e for e in (self._parse_event(idx, item) for idx, item in enumerate(items)) if e is not None]
+        if not items:
+            logger.warning(
+                f"MCP-Event-Tool '{self.events_tool}' lieferte JSON, aber keine erkennbare Liste "
+                f"(Schlüssel 'events'/'items' fehlen oder sind leer). Rohdaten (gekürzt): {str(payload)[:1000]}"
+            )
+            return []
+        parsed = [e for e in (self._parse_event(idx, item) for idx, item in enumerate(items)) if e is not None]
+        if not parsed:
+            logger.warning(
+                f"MCP-Event-Tool '{self.events_tool}' lieferte {len(items)} Einträge, aber keiner hatte ein "
+                f"erkennbares Start-/Datumsfeld. Beispiel-Eintrag (gekürzt): {str(items[0])[:1000]}"
+            )
+        return parsed
 
     def get_tasks(self):
         if not self.tasks_tool:
@@ -72,6 +84,12 @@ class MCPCalendarService:
         if payload is None:
             return []
         items = payload if isinstance(payload, list) else payload.get("tasks") or payload.get("items") or []
+        if not items:
+            logger.warning(
+                f"MCP-Tasks-Tool '{self.tasks_tool}' lieferte JSON, aber keine erkennbare Liste "
+                f"(Schlüssel 'tasks'/'items' fehlen oder sind leer). Rohdaten (gekürzt): {str(payload)[:1000]}"
+            )
+            return []
         return [self._parse_task(idx, item) for idx, item in enumerate(items)]
 
     def _call_tool(self, tool_name):
@@ -98,14 +116,17 @@ class MCPCalendarService:
         structured = getattr(result, "structuredContent", None)
         if structured:
             return structured
+        texts = []
         for block in getattr(result, "content", None) or []:
             text = getattr(block, "text", None)
             if text:
+                texts.append(text)
                 try:
                     return json.loads(text)
                 except json.JSONDecodeError:
                     continue
-        logger.warning("MCP-Tool-Antwort enthielt keine auswertbaren JSON-Daten (nur Freitext?).")
+        snippet = " | ".join(t[:500] for t in texts) if texts else "(kein Text-Content vorhanden)"
+        logger.warning(f"MCP-Tool-Antwort enthielt keine auswertbaren JSON-Daten (nur Freitext?). Rohtext (gekürzt): {snippet}")
         return None
 
     @staticmethod
