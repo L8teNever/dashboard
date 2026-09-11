@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Flex:opsz,wght@8..144,400..700&display=swap" rel="stylesheet"/>
+<style>
+  html,body{margin:0;padding:0;}
+  *{box-sizing:border-box;}
+  @keyframes md-pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+  a{color:var(--md-primary);}
+  input::placeholder{color:var(--md-outline);}
+
+  .dash-layout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .dash-left-col {
+    flex: 2 1 560px;
+    width: 100%;
+  }
+
+  .dash-right-col {
+    flex: 1 1 340px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  @media (max-width: 960px) {
+    .dash-root {
+      padding: 16px !important;
+      gap: 16px !important;
+    }
+    .dash-layout {
+      flex-direction: column !important;
+    }
+    .dash-left-col, .dash-right-col {
+      flex: 1 1 100% !important;
+      width: 100% !important;
+    }
+  }
+</style>
+</helmet>
+<div class="dash-root" style="min-height:100vh;width:100%;background:{{ rootBg }};--md-primary:{{ primary }};--md-on-primary:{{ onPrimary }};--md-primary-container:{{ primaryContainer }};--md-on-primary-container:{{ onPrimaryContainer }};--md-secondary:#3A608F;--md-secondary-container:#D8E3F8;--md-on-secondary-container:#0D1B2E;--md-tertiary:#6B5778;--md-tertiary-container:#F2DAFF;--md-on-tertiary-container:#25132D;--md-accent-green:#2E7D5B;--md-accent-green-container:#D7F2E3;--md-on-accent-green-container:#08341F;--md-surface-container-lowest:{{ surfaceLowest }};--md-surface-container-low:{{ surfaceLow }};--md-surface-container:{{ surface }};--md-surface-container-high:{{ surfaceHigh }};--md-on-surface:{{ onSurface }};--md-on-surface-variant:{{ onSurfaceVariant }};--md-outline:{{ outline }};--md-outline-variant:{{ outlineVariant }};--md-error:#BA1A1A; font-family:'Roboto',system-ui,sans-serif; color:var(--md-on-surface); padding:32px; display:flex; flex-direction:column; gap:20px; transition:background 0.3s ease, color 0.3s ease;">
+
+  <div class="dash-layout">
+
+    <!-- Main Left Column -->
+    <div class="dash-left-col" style="background:var(--md-surface-container-low); border-radius:28px; padding:24px; display:flex; flex-direction:column; gap:16px;">
+
+      <!-- Header Controls -->
+      <div style="display:flex; align-items:center; justifyContent:space-between; gap:12px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <button onClick="{{ navPrev }}" style="width:28px; height:28px; border-radius:8px; border:none; background:var(--md-surface-container-high); color:var(--md-on-surface); display:flex; align-items:center; justifyContent:center; cursor:pointer;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg>
+          </button>
+          <div onClick="{{ resetToToday }}" style="font-size:16px; font-weight:600; cursor:pointer;" title="Klicken, um zu 'Heute' zu springen">{{ viewedDateLong }}</div>
+          <button onClick="{{ navNext }}" style="width:28px; height:28px; border-radius:8px; border:none; background:var(--md-surface-container-high); color:var(--md-on-surface); display:flex; align-items:center; justifyContent:center; cursor:pointer;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+          </button>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div style="font-size:12px; padding:4px 8px; border-radius:8px; font-weight:600; background:{{ statusBg }}; color:{{ statusFg }};">{{ statusText }}</div>
+          <div style="display:flex; gap:4px; background:var(--md-surface-container-high); border-radius:12px; padding:3px;">
+            <button onClick="{{ setDayMode }}" style="{{ dayModeBtnStyle }}">Tag</button>
+            <button onClick="{{ setThreeDayMode }}" style="{{ threeDayModeBtnStyle }}">3 Tage</button>
+            <button onClick="{{ setWeekMode }}" style="{{ weekModeBtnStyle }}">Woche</button>
+          </div>
+          <button onClick="{{ toggleQuickAdd }}" style="{{ quickAddToggleStyle }}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+          </button>
+          <button onClick="{{ toggleDarkMode }}" style="width:32px; height:32px; border-radius:10px; border:none; background:var(--md-surface-container-high); color:var(--md-on-surface); display:flex; align-items:center; justifyContent:center; cursor:pointer;" title="Dark Mode umschalten">
+            <sc-if value="{{ darkMode }}" hint-placeholder-val="{{ false }}">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>
+            </sc-if>
+            <sc-if value="{{ isLightMode }}" hint-placeholder-val="{{ true }}">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path></svg>
+            </sc-if>
+          </button>
+        </div>
+      </div>
+
+      <!-- Day Selector Chips -->
+      <sc-if value="{{ isDayMode }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex; gap:8px;">
+          <sc-for list="{{ dayChips }}" as="chip" hint-placeholder-count="7">
+            <button onClick="{{ chip.onSelect }}" style="{{ chip.style }}">
+              <div style="font-size:11px; font-weight:600; text-transform:uppercase; opacity:0.75;">{{ chip.top }}</div>
+              <div style="font-size:15px; font-weight:600; margin-top:2px;">{{ chip.bottom }}</div>
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- Quick Add Event Form -->
+      <sc-if value="{{ quickAddOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; background:var(--md-surface-container); border-radius:16px; padding:10px 12px;">
+          <input value="{{ quickAddTitle }}" onChange="{{ onQuickAddTitleChange }}" placeholder="Titel..." style="flex:1 1 140px; border:none; background:transparent; font-size:14px; padding:6px 4px; outline:none; color:var(--md-on-surface);"/>
+          <input type="time" value="{{ quickAddTime }}" onChange="{{ onQuickAddTimeChange }}" style="border:none; background:var(--md-surface-container-high); border-radius:8px; padding:5px 8px; font-size:13px; color:var(--md-on-surface);"/>
+          <input value="{{ quickAddNotes }}" onChange="{{ onQuickAddNotesChange }}" placeholder="Ort/Notiz (optional)..." style="flex:1 1 120px; border:none; background:transparent; font-size:14px; padding:6px 4px; outline:none; color:var(--md-on-surface);"/>
+          <div style="display:flex; gap:6px;">
+            <sc-for list="{{ categoryOptions }}" as="cat" hint-placeholder-count="5">
+              <button onClick="{{ cat.onSelect }}" style="{{ cat.swatchStyle }}"></button>
+            </sc-for>
+          </div>
+          <button onClick="{{ confirmQuickAdd }}" style="width:30px; height:30px; border-radius:99px; border:none; background:var(--md-primary); color:var(--md-on-primary); display:flex; align-items:center; justifyContent:center; cursor:pointer;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"></path></svg>
+          </button>
+        </div>
+      </sc-if>
+
+      <!-- Calendar Schedule Grid -->
+      <div style="display:flex; gap:10px;">
+        <!-- Hours Gutter -->
+        <div style="width:48px; position:relative; height:{{ gridHeightPx }}px; flex-shrink:0; margin-top:{{ gutterMarginTop }};">
+          <sc-for list="{{ gridHours }}" as="hr" hint-placeholder-count="18">
+            <div style="position:absolute; top:{{ hr.top }}px; right:6px; font-size:12px; color:var(--md-on-surface-variant); transform:translateY(-6px);">{{ hr.label }}</div>
+          </sc-for>
+        </div>
+
+        <!-- Single Day View -->
+        <sc-if value="{{ isDayMode }}" hint-placeholder-val="{{ true }}">
+          <div style="position:relative; flex:1; height:{{ gridHeightPx }}px; border-radius:16px; background-image:repeating-linear-gradient(to bottom, var(--md-outline-variant) 0px, var(--md-outline-variant) 1px, transparent 1px, transparent 72px); background-color:var(--md-surface-container-lowest);">
+
+            <!-- Red Now Line -->
+            <sc-if value="{{ showNowLine }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute; left:0; right:0; top:0; height:{{ nowLineTop }}px; background:rgba(255,255,255,0.62); border-radius:16px 16px 0 0; z-index:2; pointer-events:none;"></div>
+              <div style="position:absolute; left:0; right:0; top:{{ nowLineTop }}px; height:0; border-top:2px solid var(--md-error); z-index:5;">
+                <div style="width:8px; height:8px; border-radius:50%; background:var(--md-error); position:absolute; left:-4px; top:-5px; animation:md-pulse 2s ease-in-out infinite;"></div>
+              </div>
+            </sc-if>
+
+            <!-- Events -->
+            <sc-for list="{{ dayEvents }}" as="ev" hint-placeholder-count="5">
+              <div onPointerDown="{{ ev.onPointerDown }}" style="{{ ev.style }}">
+                <sc-if value="{{ ev.showFull }}" hint-placeholder-val="{{ true }}">
+                  <div style="font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; opacity:0.7;">{{ ev.catLabel }}</div>
+                  <div style="font-size:14px; font-weight:600; margin-top:1px;">{{ ev.title }}</div>
+                  <div style="font-size:11px; opacity:0.8; margin-top:1px;">{{ ev.timeLabel }}</div>
+                </sc-if>
+                <sc-if value="{{ ev.showCompact }}" hint-placeholder-val="{{ false }}">
+                  <div style="font-size:12px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ ev.combinedLine }}</div>
+                </sc-if>
+              </div>
+            </sc-for>
+
+          </div>
+        </sc-if>
+
+        <!-- Multi Day View (3 Days / Week) -->
+        <sc-if value="{{ isMultiDay }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; gap:6px; flex:1; min-width:0;">
+            <sc-for list="{{ rangeColumns }}" as="col" hint-placeholder-count="7">
+              <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:6px;">
+                <div style="text-align:center;">
+                  <div style="font-size:10px; font-weight:600; text-transform:uppercase; opacity:0.7;">{{ col.top }}</div>
+                  <div style="font-size:13px; font-weight:600;">{{ col.bottom }}</div>
+                </div>
+                <div style="position:relative; height:{{ gridHeightPx }}px; border-radius:12px; background-image:repeating-linear-gradient(to bottom, var(--md-outline-variant) 0px, var(--md-outline-variant) 1px, transparent 1px, transparent 72px); background-color:var(--md-surface-container-lowest);">
+                  <sc-if value="{{ col.showNowLine }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute; left:0; right:0; top:0; height:{{ col.nowLineTop }}px; background:rgba(255,255,255,0.62); border-radius:12px 12px 0 0; z-index:2; pointer-events:none;"></div>
+                    <div style="position:absolute; left:0; right:0; top:{{ col.nowLineTop }}px; height:0; border-top:2px solid var(--md-error); z-index:5;"></div>
+                  </sc-if>
+                  <sc-for list="{{ col.events }}" as="ev" hint-placeholder-count="3">
+                    <div onPointerDown="{{ ev.onPointerDown }}" style="{{ ev.style }}">
+                      <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ ev.combinedLine }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+
+    </div>
+
+    <!-- Right Sidebar Column -->
+    <div class="dash-right-col">
+
+      <!-- Weather Card (Clickable to open pop-up) -->
+      <div onClick="{{ toggleWeather }}" style="background:var(--md-surface-container-low); border-radius:28px; padding:22px; display:flex; flex-direction:column; gap:14px; cursor:pointer; transition:transform 0.15s ease;" title="Klicken für Wetter-Details">
+        <div style="display:flex; justifyContent:space-between; align-items:flex-start;">
+          <div>
+            <div style="font-family:'Roboto Flex',sans-serif; font-size:32px; font-weight:500; line-height:1; font-variant-numeric:tabular-nums;">{{ clockStr }}</div>
+            <div style="font-size:13px; color:var(--md-on-surface-variant); margin-top:4px;">{{ clockDateStr }}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:28px; font-weight:600; line-height:1;">{{ weather.tempLabel }}</div>
+            <div style="font-size:12px; color:var(--md-on-surface-variant); margin-top:4px;">{{ weather.city }} · {{ weather.condition }}</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:18px; font-size:12px; color:var(--md-on-surface-variant); border-top:1px solid var(--md-outline-variant); padding-top:12px;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h9a3 3 0 100-6"></path><path d="M3 16h13a3 3 0 110 6"></path></svg>
+            {{ weather.windLabel }}
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16v3M12 16v4M16 16v3"></path><path d="M6 13a4 4 0 010-8 5 5 0 019.6-1.5A4.5 4.5 0 0118 13H6z"></path></svg>
+            {{ weather.rainLabel }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Wichtige Mails -->
+      <div style="background:var(--md-surface-container-low); border-radius:28px; padding:22px;">
+        <div onClick="{{ toggleMail }}" style="display:flex; justifyContent:space-between; align-items:center; margin-bottom:14px; cursor:pointer;">
+          <div style="font-size:16px; font-weight:600;">Wichtige Mails</div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--md-on-surface-variant)" stroke-width="2.2" stroke-linecap="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"></path></svg>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <sc-for list="{{ importantMails }}" as="mail" hint-placeholder-count="4">
+            <div style="display:flex; align-items:flex-start; gap:10px;">
+              <div style="width:32px; height:32px; border-radius:10px; background:var(--md-surface-container-high); color:var(--md-on-surface); font-size:12px; font-weight:700; display:flex; align-items:center; justifyContent:center; flex-shrink:0;">{{ mail.initial }}</div>
+              <div style="flex:1; min-width:0;">
+                <div style="display:flex; justifyContent:space-between; gap:8px;">
+                  <div style="font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ mail.sender }}</div>
+                  <div style="font-size:11px; color:var(--md-on-surface-variant); flex-shrink:0;">{{ mail.time }}</div>
+                </div>
+                <div style="font-size:13px; color:var(--md-on-surface-variant); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ mail.subject }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- Hausaufgaben Card -->
+      <div style="background:var(--md-surface-container-low); border-radius:28px; padding:22px;">
+        <div onClick="{{ toggleHwModal }}" style="display:flex; justifyContent:space-between; align-items:center; margin-bottom:14px; cursor:pointer;">
+          <div style="font-size:16px; font-weight:600;">Hausaufgaben</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="font-size:12px; color:var(--md-on-surface-variant);">{{ hwDoneLabel }}</div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--md-on-surface-variant)" stroke-width="2.2" stroke-linecap="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"></path></svg>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <sc-for list="{{ hwTasks }}" as="task" hint-placeholder-count="3">
+            <div onClick="{{ task.onToggle }}" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+              <div style="{{ task.checkboxStyle }}">
+                <sc-if value="{{ task.done }}" hint-placeholder-val="{{ false }}">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"></path></svg>
+                </sc-if>
+              </div>
+              <div style="{{ task.textStyle }}">{{ task.title }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ hwAddOpen }}" hint-placeholder-val="{{ false }}">
+          <input value="{{ hwAddTitle }}" onChange="{{ onHwAddTitleChange }}" onKeyDown="{{ onHwAddKeyDown }}" placeholder="Neue Hausaufgabe..." style="margin-top:10px; width:100%; border:none; border-bottom:1px solid var(--md-outline-variant); background:transparent; font-size:14px; padding:6px 2px; outline:none; color:var(--md-on-surface);"/>
+        </sc-if>
+        <button onClick="{{ toggleHwAdd }}" style="margin-top:12px; font-size:13px; color:var(--md-on-surface-variant); background:none; border:none; cursor:pointer; padding:2px 0; display:flex; align-items:center; gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+          Hausaufgabe hinzufügen
+        </button>
+      </div>
+
+      <!-- To-Dos Card -->
+      <div style="background:var(--md-surface-container-low); border-radius:28px; padding:22px;">
+        <div onClick="{{ toggleTodoModal }}" style="display:flex; justifyContent:space-between; align-items:center; margin-bottom:14px; cursor:pointer;">
+          <div style="font-size:16px; font-weight:600;">To-Dos</div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="font-size:12px; color:var(--md-on-surface-variant);">{{ todoDoneLabel }}</div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--md-on-surface-variant)" stroke-width="2.2" stroke-linecap="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"></path></svg>
+          </div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <sc-for list="{{ todoTasks }}" as="task" hint-placeholder-count="3">
+            <div onClick="{{ task.onToggle }}" style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+              <div style="{{ task.checkboxStyle }}">
+                <sc-if value="{{ task.done }}" hint-placeholder-val="{{ false }}">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"></path></svg>
+                </sc-if>
+              </div>
+              <div style="{{ task.textStyle }}">{{ task.title }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ todoAddOpen }}" hint-placeholder-val="{{ false }}">
+          <input value="{{ todoAddTitle }}" onChange="{{ onTodoAddTitleChange }}" onKeyDown="{{ onTodoAddKeyDown }}" placeholder="Neues To-Do..." style="margin-top:10px; width:100%; border:none; border-bottom:1px solid var(--md-outline-variant); background:transparent; font-size:14px; padding:6px 2px; outline:none; color:var(--md-on-surface);"/>
+        </sc-if>
+        <button onClick="{{ toggleTodoAdd }}" style="margin-top:12px; font-size:13px; color:var(--md-on-surface-variant); background:none; border:none; cursor:pointer; padding:2px 0; display:flex; align-items:center; gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+          To-Do hinzufügen
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Event Detail Modal -->
+  <sc-if value="{{ detail }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeDetail }}" style="position:fixed; inset:0; background:rgba(25,28,32,0.4); display:flex; align-items:center; justifyContent:center; z-index:50;">
+      <div onClick="{{ stopClickPropagation }}" style="background:var(--md-surface-container-lowest); border-radius:24px; padding:26px; width:340px; max-width:90vw; display:flex; flex-direction:column; gap:14px;">
+        <div style="display:flex; justifyContent:space-between; align-items:flex-start; gap:12px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="width:10px; height:10px; border-radius:50%; background:{{ detail.dot }};"></div>
+            <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; color:var(--md-on-surface-variant);">{{ detail.catLabel }}</div>
+          </div>
+          <button onClick="{{ closeDetail }}" style="width:26px; height:26px; border-radius:8px; border:none; background:var(--md-surface-container-high); display:flex; align-items:center; justifyContent:center; cursor:pointer; color:var(--md-on-surface);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+          </button>
+        </div>
+        <div style="font-size:20px; font-weight:600;">{{ detail.title }}</div>
+        <div style="font-size:14px; color:var(--md-on-surface-variant);">{{ detail.dateLabel }} · {{ detail.timeLabel }}</div>
+        <sc-if value="{{ detail.hasLocation }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:14px; color:var(--md-on-surface);">📍 {{ detail.location }}</div>
+        </sc-if>
+        <sc-if value="{{ detail.hasNotes }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:14px; color:var(--md-on-surface); background:var(--md-surface-container); border-radius:12px; padding:10px 12px;">{{ detail.notes }}</div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Centered Large Weather Details Modal -->
+  <sc-if value="{{ weatherOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ toggleWeather }}" style="position:fixed; inset:0; background:rgba(25,28,32,0.5); backdrop-filter:blur(6px); display:flex; align-items:center; justifyContent:center; z-index:60; padding:20px;">
+      <div onClick="{{ stopClickPropagation }}" style="background:var(--md-surface-container-lowest); border-radius:36px; padding:40px; width:760px; max-width:94vw; boxShadow:0 20px 50px rgba(0,0,0,0.25); display:flex; flex-direction:column; gap:24px;">
+        <div style="display:flex; justifyContent:space-between; align-items:flex-start;">
+          <div>
+            <div style="font-family:'Roboto Flex',sans-serif; font-size:64px; font-weight:600; line-height:1;">{{ weather.tempLabel }}</div>
+            <div style="font-size:22px; color:var(--md-on-surface-variant); margin-top:8px; font-weight:500;">{{ weather.city }} · {{ weather.condition }}</div>
+          </div>
+          <button onClick="{{ toggleWeather }}" style="width:48px; height:48px; border-radius:16px; border:none; background:var(--md-surface-container-high); display:flex; align-items:center; justifyContent:center; cursor:pointer; color:var(--md-on-surface);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+          </button>
+        </div>
+
+        <div style="display:flex; gap:24px; font-size:16px; font-weight:600; color:var(--md-primary); background:var(--md-surface-container); border-radius:20px; padding:16px 20px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 16v3M12 16v4M16 16v3"></path><path d="M6 13a4 4 0 010-8 5 5 0 019.6-1.5A4.5 4.5 0 0118 13H6z"></path></svg>
+            {{ weather.rainLabel }}
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 8h9a3 3 0 100-6"></path><path d="M3 16h13a3 3 0 110 6"></path></svg>
+            {{ weather.windLabel }}
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size:15px; font-weight:600; color:var(--md-on-surface-variant); margin-bottom:12px;">Stündliche Vorhersage</div>
+          <div style="display:flex; gap:14px; overflow-x:auto; padding-bottom:6px;">
+            <sc-for list="{{ weatherHourly }}" as="h" hint-placeholder-count="6">
+              <div style="{{ h.cardStyle }}">
+                <div style="font-size:14px; color:var(--md-on-surface-variant); font-weight:500;">{{ h.time }}</div>
+                <div style="font-size:24px; font-weight:600; margin-top:8px;">{{ h.temp }}</div>
+                <div style="font-size:13px; color:var(--md-primary); font-weight:600; margin-top:6px;">{{ h.rain }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Centered Mails Modal -->
+  <sc-if value="{{ mailOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ toggleMail }}" style="position:fixed; inset:0; background:rgba(25,28,32,0.5); backdrop-filter:blur(6px); display:flex; align-items:center; justifyContent:center; z-index:60; padding:20px;">
+      <div onClick="{{ stopClickPropagation }}" style="background:var(--md-surface-container-lowest); border-radius:36px; padding:40px; width:760px; max-width:94vw; boxShadow:0 20px 50px rgba(0,0,0,0.25); display:flex; flex-direction:column; gap:24px;">
+        <div style="display:flex; justifyContent:space-between; align-items:center;">
+          <div style="font-family:'Roboto Flex',sans-serif; font-size:32px; font-weight:600;">📬 Wichtige Mails</div>
+          <button onClick="{{ toggleMail }}" style="width:48px; height:48px; border-radius:16px; border:none; background:var(--md-surface-container-high); display:flex; align-items:center; justifyContent:center; cursor:pointer; color:var(--md-on-surface);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:16px; max-height:60vh; overflow-y:auto;">
+          <sc-for list="{{ importantMails }}" as="m" hint-placeholder-count="4">
+            <div style="display:flex; align-items:flex-start; gap:16px; background:var(--md-surface-container-low); border-radius:20px; padding:20px;">
+              <div style="width:48px; height:48px; border-radius:16px; background:var(--md-primary-container); color:var(--md-on-primary-container); font-size:20px; font-weight:700; display:flex; align-items:center; justifyContent:center; flex-shrink:0;">{{ m.initial }}</div>
+              <div style="flex:1;">
+                <div style="display:flex; justifyContent:space-between; align-items:center;">
+                  <div style="font-size:18px; font-weight:600;">{{ m.sender }}</div>
+                  <div style="font-size:14px; color:var(--md-on-surface-variant);">{{ m.time }}</div>
+                </div>
+                <div style="font-size:16px; color:var(--md-on-surface); font-weight:500; margin-top:4px;">{{ m.subject }}</div>
+                <div style="font-size:14px; color:var(--md-on-surface-variant); margin-top:8px; line-height:1.5;">Hallo, bitte beachtet die aktuellen Hinweise im Anhang sowie den Termin für nächste Woche. Bei Fragen gerne melden!</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Centered Hausaufgaben Modal -->
+  <sc-if value="{{ hwOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ toggleHwModal }}" style="position:fixed; inset:0; background:rgba(25,28,32,0.5); backdrop-filter:blur(6px); display:flex; align-items:center; justifyContent:center; z-index:60; padding:20px;">
+      <div onClick="{{ stopClickPropagation }}" style="background:var(--md-surface-container-lowest); border-radius:36px; padding:40px; width:760px; max-width:94vw; boxShadow:0 20px 50px rgba(0,0,0,0.25); display:flex; flex-direction:column; gap:24px;">
+        <div style="display:flex; justifyContent:space-between; align-items:center;">
+          <div>
+            <div style="font-family:'Roboto Flex',sans-serif; font-size:32px; font-weight:600;">📚 Hausaufgaben</div>
+            <div style="font-size:15px; color:var(--md-on-surface-variant); margin-top:4px;">{{ hwDoneLabel }}</div>
+          </div>
+          <button onClick="{{ toggleHwModal }}" style="width:48px; height:48px; border-radius:16px; border:none; background:var(--md-surface-container-high); display:flex; align-items:center; justifyContent:center; cursor:pointer; color:var(--md-on-surface);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:14px; max-height:50vh; overflow-y:auto;">
+          <sc-for list="{{ hwTasks }}" as="task" hint-placeholder-count="3">
+            <div onClick="{{ task.onToggle }}" style="display:flex; align-items:center; gap:16px; background:var(--md-surface-container-low); border-radius:20px; padding:20px; cursor:pointer;">
+              <div style="{{ task.checkboxStyle }}">
+                <sc-if value="{{ task.done }}" hint-placeholder-val="{{ false }}">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"></path></svg>
+                </sc-if>
+              </div>
+              <div style="font-size:20px; font-weight:500; color:{{ task.done ? 'var(--md-on-surface-variant)' : 'var(--md-on-surface)' }};">{{ task.title }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex; gap:12px;">
+          <input value="{{ hwAddTitle }}" onChange="{{ onHwAddTitleChange }}" onKeyDown="{{ onHwAddKeyDown }}" placeholder="Neue Hausaufgabe eingeben..." style="flex:1; border:1px solid var(--md-outline-variant); border-radius:16px; background:var(--md-surface-container); font-size:16px; padding:16px 20px; outline:none; color:var(--md-on-surface);"/>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- Centered To-Dos Modal -->
+  <sc-if value="{{ todoOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ toggleTodoModal }}" style="position:fixed; inset:0; background:rgba(25,28,32,0.5); backdrop-filter:blur(6px); display:flex; align-items:center; justifyContent:center; z-index:60; padding:20px;">
+      <div onClick="{{ stopClickPropagation }}" style="background:var(--md-surface-container-lowest); border-radius:36px; padding:40px; width:760px; max-width:94vw; boxShadow:0 20px 50px rgba(0,0,0,0.25); display:flex; flex-direction:column; gap:24px;">
+        <div style="display:flex; justifyContent:space-between; align-items:center;">
+          <div>
+            <div style="font-family:'Roboto Flex',sans-serif; font-size:32px; font-weight:600;">📝 To-Do Liste</div>
+            <div style="font-size:15px; color:var(--md-on-surface-variant); margin-top:4px;">{{ todoDoneLabel }}</div>
+          </div>
+          <button onClick="{{ toggleTodoModal }}" style="width:48px; height:48px; border-radius:16px; border:none; background:var(--md-surface-container-high); display:flex; align-items:center; justifyContent:center; cursor:pointer; color:var(--md-on-surface);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+          </button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:14px; max-height:50vh; overflow-y:auto;">
+          <sc-for list="{{ todoTasks }}" as="task" hint-placeholder-count="3">
+            <div onClick="{{ task.onToggle }}" style="display:flex; align-items:center; gap:16px; background:var(--md-surface-container-low); border-radius:20px; padding:20px; cursor:pointer;">
+              <div style="{{ task.checkboxStyle }}">
+                <sc-if value="{{ task.done }}" hint-placeholder-val="{{ false }}">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"></path></svg>
+                </sc-if>
+              </div>
+              <div style="font-size:20px; font-weight:500; color:{{ task.done ? 'var(--md-on-surface-variant)' : 'var(--md-on-surface)' }};">{{ task.title }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex; gap:12px;">
+          <input value="{{ todoAddTitle }}" onChange="{{ onTodoAddTitleChange }}" onKeyDown="{{ onTodoAddKeyDown }}" placeholder="Neues To-Do eingeben..." style="flex:1; border:1px solid var(--md-outline-variant); border-radius:16px; background:var(--md-surface-container); font-size:16px; padding:16px 20px; outline:none; color:var(--md-on-surface);"/>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.categories = {
+      schule:{label:'Schule', bg:'var(--md-primary-container)', fg:'var(--md-on-primary-container)', dot:'var(--md-primary)'},
+      lernen:{label:'Lernen', bg:'var(--md-tertiary-container)', fg:'var(--md-on-tertiary-container)', dot:'var(--md-tertiary)'},
+      sport:{label:'Sport', bg:'var(--md-secondary-container)', fg:'var(--md-on-secondary-container)', dot:'var(--md-secondary)'},
+      familie:{label:'Familie', bg:'var(--md-accent-green-container)', fg:'var(--md-on-accent-green-container)', dot:'var(--md-accent-green)'},
+      sonstiges:{label:'Termin', bg:'var(--md-surface-container-high)', fg:'var(--md-on-surface)', dot:'var(--md-outline)'},
+    };
+    this.WD = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+    this.WD_FULL = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+    this.MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+    this.MONTHS_SHORT = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+    this.dragInfo = null;
+
+    this.state = {
+      anchorOffset: 0,
+      viewMode: 'day',
+      draggingId: null,
+      dragDeltaMin: 0,
+      quickAddOpen: false,
+      quickAddTitle: '',
+      quickAddTime: '08:00',
+      quickAddCat: 'sonstiges',
+      quickAddNotes: '',
+      detailEventId: null,
+      hwAddOpen: false,
+      hwAddTitle: '',
+      todoAddOpen: false,
+      todoAddTitle: '',
+      now: new Date(),
+      events: [],
+      tasks: [],
+      weatherOpen: false,
+      mailOpen: false,
+      hwOpen: false,
+      todoOpen: false,
+      darkMode: false,
+      connected: false,
+      weather: { city: 'Berlin', tempLabel: '21°', condition: 'Bewölkt ⛅', windLabel: '14 km/h Wind', rainLabel: '20% Regen' },
+      hourly: [
+        { key: 1, time: '08:00', temp: '19°', rain: '10%', highlight: false },
+        { key: 2, time: '11:00', temp: '21°', rain: '15%', highlight: false },
+        { key: 3, time: '14:00', temp: '23°', rain: '25%', highlight: false },
+        { key: 4, time: '16:00', temp: '22°', rain: '60%', highlight: true },
+        { key: 5, time: '18:00', temp: '20°', rain: '45%', highlight: true },
+        { key: 6, time: '20:00', temp: '18°', rain: '20%', highlight: false },
+      ],
+    };
+
+    this.onDragMove = this.onDragMove.bind(this);
+    this.onDragEnd = this.onDragEnd.bind(this);
+    this.closeDetail = this.closeDetail.bind(this);
+    this.toggleWeather = this.toggleWeather.bind(this);
+    this.toggleMail = this.toggleMail.bind(this);
+    this.toggleHwModal = this.toggleHwModal.bind(this);
+    this.toggleTodoModal = this.toggleTodoModal.bind(this);
+    this.toggleQuickAdd = this.toggleQuickAdd.bind(this);
+    this.onQuickAddTitleChange = this.onQuickAddTitleChange.bind(this);
+    this.onQuickAddTimeChange = this.onQuickAddTimeChange.bind(this);
+    this.onQuickAddNotesChange = this.onQuickAddNotesChange.bind(this);
+    this.confirmQuickAdd = this.confirmQuickAdd.bind(this);
+    this.toggleHwAdd = this.toggleHwAdd.bind(this);
+    this.onHwAddTitleChange = this.onHwAddTitleChange.bind(this);
+    this.onHwAddKeyDown = this.onHwAddKeyDown.bind(this);
+    this.toggleTodoAdd = this.toggleTodoAdd.bind(this);
+    this.onTodoAddTitleChange = this.onTodoAddTitleChange.bind(this);
+    this.onTodoAddKeyDown = this.onTodoAddKeyDown.bind(this);
+    this.setDayMode = this.setDayMode.bind(this);
+    this.setThreeDayMode = this.setThreeDayMode.bind(this);
+    this.setWeekMode = this.setWeekMode.bind(this);
+    this.navPrev = this.navPrev.bind(this);
+    this.navNext = this.navNext.bind(this);
+    this.resetToToday = this.resetToToday.bind(this);
+    this.toggleDarkMode = this.toggleDarkMode.bind(this);
+  }
+
+  get START() { return 5; }
+  get END() { return 22; }
+
+  toggleWeather() {
+    this.setState(s => {
+      const next = !s.weatherOpen;
+      return next ? { weatherOpen: true, mailOpen: false, hwOpen: false, todoOpen: false } : { weatherOpen: false };
+    });
+  }
+  toggleMail() {
+    this.setState(s => {
+      const next = !s.mailOpen;
+      return next ? { mailOpen: true, weatherOpen: false, hwOpen: false, todoOpen: false } : { mailOpen: false };
+    });
+  }
+  toggleHwModal() {
+    this.setState(s => {
+      const next = !s.hwOpen;
+      return next ? { hwOpen: true, weatherOpen: false, mailOpen: false, todoOpen: false } : { hwOpen: false };
+    });
+  }
+  toggleTodoModal() {
+    this.setState(s => {
+      const next = !s.todoOpen;
+      return next ? { todoOpen: true, weatherOpen: false, mailOpen: false, hwOpen: false } : { todoOpen: false };
+    });
+  }
+  toggleDarkMode() {
+    const next = !this.state.darkMode;
+    this.setState({ darkMode: next });
+    if (this.socket) {
+      this.socket.emit('control_action', { action: 'toggleDarkMode', darkMode: next });
+    }
+  }
+  resetToToday() {
+    this.setState({ anchorOffset: 0 });
+    if (this.socket) {
+      this.socket.emit('control_action', { action: 'setOffset', anchorOffset: 0 });
+    }
+  }
+
+  componentDidMount() {
+    this.setState({
+      events: this.buildInitialEvents(),
+      tasks: this.buildInitialTasks(),
+    });
+
+    this.clockTimer = setInterval(() => this.setState({ now: new Date() }), 30000);
+    this.fetchWeather();
+
+    if (typeof io !== 'undefined') {
+      this.socket = io();
+      this.socket.on('connect', () => this.setState({ connected: true }));
+      this.socket.on('disconnect', () => this.setState({ connected: false }));
+      this.socket.on('state_sync', (data) => {
+        if (data) {
+          this.setState({
+            anchorOffset: data.anchorOffset !== undefined ? data.anchorOffset : this.state.anchorOffset,
+            viewMode: data.viewMode || this.state.viewMode,
+            weatherOpen: data.weatherOpen !== undefined ? data.weatherOpen : this.state.weatherOpen,
+            mailOpen: data.mailOpen !== undefined ? data.mailOpen : this.state.mailOpen,
+            hwOpen: data.hwOpen !== undefined ? data.hwOpen : this.state.hwOpen,
+            todoOpen: data.todoOpen !== undefined ? data.todoOpen : this.state.todoOpen,
+            darkMode: data.darkMode !== undefined ? data.darkMode : this.state.darkMode,
+          });
+        }
+      });
+      this.socket.on('control_action', (data) => {
+        if (data.action === 'navPrev') {
+          const step = this.state.viewMode === 'week' ? 7 : this.state.viewMode === '3day' ? 3 : 1;
+          this.setState(s => ({ anchorOffset: s.anchorOffset - step }));
+        } else if (data.action === 'navNext') {
+          const step = this.state.viewMode === 'week' ? 7 : this.state.viewMode === '3day' ? 3 : 1;
+          this.setState(s => ({ anchorOffset: s.anchorOffset + step }));
+        } else if (data.action === 'setMode') {
+          this.setState({ viewMode: data.viewMode });
+        } else if (data.action === 'toggleWeather') {
+          this.setState(s => {
+            const next = typeof data.weatherOpen === 'boolean' ? data.weatherOpen : !s.weatherOpen;
+            return next ? { weatherOpen: true, mailOpen: false, hwOpen: false, todoOpen: false } : { weatherOpen: false };
+          });
+        } else if (data.action === 'toggleMail') {
+          this.setState(s => {
+            const next = typeof data.mailOpen === 'boolean' ? data.mailOpen : !s.mailOpen;
+            return next ? { mailOpen: true, weatherOpen: false, hwOpen: false, todoOpen: false } : { mailOpen: false };
+          });
+        } else if (data.action === 'toggleHw') {
+          this.setState(s => {
+            const next = typeof data.hwOpen === 'boolean' ? data.hwOpen : !s.hwOpen;
+            return next ? { hwOpen: true, weatherOpen: false, mailOpen: false, todoOpen: false } : { hwOpen: false };
+          });
+        } else if (data.action === 'toggleTodo') {
+          this.setState(s => {
+            const next = typeof data.todoOpen === 'boolean' ? data.todoOpen : !s.todoOpen;
+            return next ? { todoOpen: true, weatherOpen: false, mailOpen: false, hwOpen: false } : { todoOpen: false };
+          });
+        } else if (data.action === 'closeAllModals') {
+          this.setState({ weatherOpen: false, mailOpen: false, hwOpen: false, todoOpen: false });
+        } else if (data.action === 'toggleDarkMode') {
+          this.setState(s => ({ darkMode: typeof data.darkMode === 'boolean' ? data.darkMode : !s.darkMode }));
+        } else if (data.action === 'setOffset') {
+          this.setState({ anchorOffset: data.anchorOffset });
+        } else if (data.action === 'scroll') {
+          const delta = data.deltaY || 0;
+          window.scrollBy(0, delta);
+        }
+      });
+    }
+
+    this.fetchCalendarEvents();
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.clockTimer);
+    window.removeEventListener('pointermove', this.onDragMove);
+    window.removeEventListener('pointerup', this.onDragEnd);
+  }
+
+  fetchWeather() {
+    fetch('/api/weather')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.tempLabel) {
+          this.setState({ weather: data, hourly: data.hourly || this.state.hourly });
+        }
+      })
+      .catch(err => console.log('Weather API Note:', err));
+  }
+
+  fetchCalendarEvents() {
+    fetch('/api/events')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.events && data.events.length > 0) {
+          this.setState({ events: data.events });
+        }
+      })
+      .catch(err => console.log('Calendar API Note:', err));
+
+    fetch('/api/tasks')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.tasks && data.tasks.length > 0) {
+          this.setState({ tasks: data.tasks });
+        }
+      })
+      .catch(err => console.log('Tasks API Note:', err));
+  }
+
+  dateISO(offset) {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    d.setHours(0, 0, 0, 0);
+    return this.fmtISO(d);
+  }
+  fmtISO(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  minutesToHHMM(min) {
+    const h = Math.floor(min / 60), m = min % 60;
+    return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+  }
+  parseTimeStr(str) {
+    const parts = str.split(':').map(Number);
+    return parts[0] * 60 + parts[1];
+  }
+  formatLongDate(d) {
+    return this.WD_FULL[d.getDay()] + ', ' + d.getDate() + '. ' + this.MONTHS[d.getMonth()];
+  }
+  dayLabelShort(dateISO, todayISO, tomorrowISO) {
+    if (dateISO === todayISO) return 'Heute';
+    if (dateISO === tomorrowISO) return 'Morgen';
+    const parts = dateISO.split('-').map(Number);
+    const dt = new Date(parts[0], parts[1] - 1, parts[2]);
+    return this.WD[dt.getDay()] + ', ' + parts[2] + '.' + parts[1] + '.';
+  }
+
+  buildInitialEvents() {
+    const iso = (o) => this.dateISO(o);
+    return [
+      { id:1, date:iso(0), start:480, end:795, title:'Schule', cat:'schule', location:'Schule, Raum 12', notes:'Mathematik & Deutsch Unterricht' },
+      { id:2, date:iso(0), start:840, end:885, title:'Hausaufgaben: Mathe', cat:'lernen', location:'Zimmer', notes:'Seite 42, Aufgabe 3-6 lösen' },
+      { id:3, date:iso(0), start:960, end:1050, title:'Fußballtraining', cat:'sport', location:'Sportplatz Nord', notes:'Trikot & Schienbeinschoner nicht vergessen' },
+      { id:4, date:iso(0), start:1110, end:1155, title:'Abendessen mit Familie', cat:'familie', location:'Zuhause', notes:'Pizza Abend' },
+      { id:5, date:iso(0), start:1170, end:1200, title:'Klavier üben', cat:'lernen', location:'', notes:'Stück für Musikschule üben' },
+      { id:6, date:iso(1), start:480, end:795, title:'Schule', cat:'schule', location:'Schule, Raum 12', notes:'Englisch Test vorbereiten' },
+      { id:7, date:iso(1), start:900, end:960, title:'Zahnarzttermin', cat:'sonstiges', location:'Zahnarztpraxis Dr. Huber', notes:'Bitte 10 Min. früher da sein' },
+      { id:8, date:iso(1), start:990, end:1050, title:'Hausaufgaben: Englisch', cat:'lernen', location:'', notes:'Vokabeln Kapitel 4 lernen' },
+    ];
+  }
+  buildInitialTasks() {
+    return [
+      { id:1, title:'Matheaufgaben S. 42 fertig machen', done:false, type:'hausaufgabe' },
+      { id:2, title:'Englisch Vokabeln lernen', done:false, type:'hausaufgabe' },
+      { id:3, title:'Buch für Deutsch mitbringen', done:false, type:'hausaufgabe' },
+      { id:4, title:'Sporttasche packen', done:true, type:'todo' },
+      { id:5, title:'Zimmer aufräumen', done:false, type:'todo' },
+    ];
+  }
+
+  onDragStart(id, e) {
+    e.preventDefault();
+    const ev = this.state.events.find(x => x.id === id);
+    if (!ev) return;
+    this.dragInfo = { id, startY: e.clientY, startX: e.clientX, originalStart: ev.start, duration: ev.end - ev.start };
+    this.setState({ draggingId: id, dragDeltaMin: 0 });
+    window.addEventListener('pointermove', this.onDragMove);
+    window.addEventListener('pointerup', this.onDragEnd);
+  }
+  onDragMove(e) {
+    if (!this.dragInfo) return;
+    const dy = e.clientY - this.dragInfo.startY;
+    const deltaMin = Math.round((dy / 72 * 60) / 15) * 15;
+    this.setState({ dragDeltaMin: deltaMin });
+  }
+  onDragEnd(e) {
+    if (!this.dragInfo) return;
+    const info = this.dragInfo;
+    const moved = Math.abs(e.clientX - info.startX) > 6 || Math.abs(e.clientY - info.startY) > 6;
+    const START = this.START, END = this.END;
+    let newStart = info.originalStart + this.state.dragDeltaMin;
+    newStart = Math.max(START * 60, Math.min(newStart, END * 60 - info.duration));
+    newStart = Math.round(newStart / 15) * 15;
+    this.setState(s => ({
+      events: s.events.map(ev => ev.id === info.id ? { ...ev, start: newStart, end: newStart + info.duration } : ev),
+      draggingId: null, dragDeltaMin: 0,
+      detailEventId: moved ? s.detailEventId : info.id,
+    }));
+    window.removeEventListener('pointermove', this.onDragMove);
+    window.removeEventListener('pointerup', this.onDragEnd);
+    this.dragInfo = null;
+  }
+  closeDetail() {
+    this.setState({ detailEventId: null });
+  }
+
+  toggleWeather() {
+    const nextState = !this.state.weatherOpen;
+    this.setState({ weatherOpen: nextState });
+    if (this.socket) {
+      this.socket.emit('control_action', { action: 'toggleWeather', weatherOpen: nextState });
+    }
+  }
+
+  toggleQuickAdd() { this.setState(s => ({ quickAddOpen: !s.quickAddOpen })); }
+  onQuickAddTitleChange(e) { this.setState({ quickAddTitle: e.target.value }); }
+  onQuickAddTimeChange(e) { this.setState({ quickAddTime: e.target.value }); }
+  onQuickAddNotesChange(e) { this.setState({ quickAddNotes: e.target.value }); }
+  confirmQuickAdd() {
+    const title = this.state.quickAddTitle.trim();
+    if (!title) return;
+    const startMin = this.parseTimeStr(this.state.quickAddTime);
+    const id = Date.now();
+    const viewDate = this.dateISO(this.state.anchorOffset);
+    this.setState(s => ({
+      events: [...s.events, { id, date: viewDate, start: startMin, end: startMin + 45, title, cat: s.quickAddCat, location: '', notes: s.quickAddNotes.trim() }],
+      quickAddOpen: false, quickAddTitle: '', quickAddTime: '08:00', quickAddNotes: '',
+    }));
+  }
+
+  confirmAdd(type, titleKey, openKey) {
+    const title = this.state[titleKey].trim();
+    if (!title) return;
+    this.setState(s => ({ tasks: [...s.tasks, { id: Date.now(), title, done: false, type }], [titleKey]: '', [openKey]: false }));
+  }
+  toggleHwAdd() { this.setState(s => ({ hwAddOpen: !s.hwAddOpen })); }
+  onHwAddTitleChange(e) { this.setState({ hwAddTitle: e.target.value }); }
+  onHwAddKeyDown(e) { if (e.key === 'Enter') this.confirmAdd('hausaufgabe', 'hwAddTitle', 'hwAddOpen'); }
+  toggleTodoAdd() { this.setState(s => ({ todoAddOpen: !s.todoAddOpen })); }
+  onTodoAddTitleChange(e) { this.setState({ todoAddTitle: e.target.value }); }
+  onTodoAddKeyDown(e) { if (e.key === 'Enter') this.confirmAdd('todo', 'todoAddTitle', 'todoAddOpen'); }
+  toggleTaskDone(id) {
+    this.setState(s => ({ tasks: s.tasks.map(t => t.id === id ? { ...t, done: !t.done } : t) }));
+  }
+
+  setDayMode() {
+    this.setState({ viewMode: 'day' });
+    if (this.socket) this.socket.emit('control_action', { action: 'setMode', viewMode: 'day' });
+  }
+  setThreeDayMode() {
+    this.setState({ viewMode: '3day' });
+    if (this.socket) this.socket.emit('control_action', { action: 'setMode', viewMode: '3day' });
+  }
+  setWeekMode() {
+    this.setState({ viewMode: 'week' });
+    if (this.socket) this.socket.emit('control_action', { action: 'setMode', viewMode: 'week' });
+  }
+
+  navPrev() {
+    const step = this.state.viewMode === 'week' ? 7 : this.state.viewMode === '3day' ? 3 : 1;
+    const nextOffset = this.state.anchorOffset - step;
+    this.setState({ anchorOffset: nextOffset });
+    if (this.socket) this.socket.emit('control_action', { action: 'navPrev', anchorOffset: nextOffset });
+  }
+
+  navNext() {
+    const step = this.state.viewMode === 'week' ? 7 : this.state.viewMode === '3day' ? 3 : 1;
+    const nextOffset = this.state.anchorOffset + step;
+    this.setState({ anchorOffset: nextOffset });
+    if (this.socket) this.socket.emit('control_action', { action: 'navNext', anchorOffset: nextOffset });
+  }
+
+  buildEventsForDate(dateISO, START, END, now, s, forceCompact) {
+    const raw = (s.events || []).filter(e => e.date === dateISO).sort((a, b) => a.start - b.start);
+    const events = raw.map(ev => {
+      const cat = this.categories[ev.cat] || this.categories.sonstiges;
+      const dragging = s.draggingId === ev.id;
+      let start = ev.start;
+      if (dragging) start = Math.max(START * 60, Math.min(ev.start + s.dragDeltaMin, END * 60 - (ev.end - ev.start)));
+      const top = (start - START * 60) / 60 * 72;
+      const rawHeight = ((ev.end - ev.start) / 60 * 72) - 4;
+      const compact = forceCompact || rawHeight < 58;
+      const height = compact ? Math.max(rawHeight, forceCompact ? 20 : 26) : Math.max(rawHeight, 58);
+      const timeLabel = this.minutesToHHMM(start) + '-' + this.minutesToHHMM(start + (ev.end - ev.start));
+      return {
+        key: 'ev_' + ev.id, title: ev.title, catLabel: cat.label, timeLabel,
+        showFull: !compact, showCompact: compact,
+        combinedLine: forceCompact ? ev.title : (ev.title + ' · ' + timeLabel),
+        onPointerDown: (e) => this.onDragStart(ev.id, e),
+        style: {
+          position: 'absolute', left: forceCompact ? '2px' : '6px', right: forceCompact ? '2px' : '6px', top: top + 'px', height: height + 'px',
+          background: cat.bg, color: cat.fg, borderRadius: forceCompact ? '6px' : '12px', overflow: 'hidden',
+          padding: forceCompact ? '0 5px' : (compact ? '0 10px' : '8px 10px'),
+          display: compact ? 'flex' : 'block', alignItems: compact ? 'center' : undefined,
+          fontSize: forceCompact ? '10px' : undefined, fontWeight: forceCompact ? 600 : undefined,
+          cursor: dragging ? 'grabbing' : 'grab', boxShadow: dragging ? '0 6px 16px rgba(0,0,0,0.18)' : 'none',
+          zIndex: dragging ? 10 : 1, transition: dragging ? 'none' : 'box-shadow 0.15s ease',
+          touchAction: 'none', userSelect: 'none',
+        },
+      };
+    });
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    const showNowLine = dateISO === this.dateISO(0) && nowMin >= START * 60 && nowMin <= END * 60;
+    const nowLineTop = Math.max(0, (nowMin - START * 60) / 60 * 72);
+    return { events, showNowLine, nowLineTop };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const isDark = !!s.darkMode;
+    const isLightMode = !isDark;
+
+    const rootBg = isDark ? '#111318' : '#F8F9FF';
+    const primary = isDark ? '#A8C7FA' : '#0B57D0';
+    const onPrimary = isDark ? '#003062' : '#FFFFFF';
+    const primaryContainer = isDark ? '#004789' : '#D3E3FD';
+    const onPrimaryContainer = isDark ? '#D3E3FD' : '#041E49';
+    const surfaceLowest = isDark ? '#181A20' : '#FFFFFF';
+    const surfaceLow = isDark ? '#1D2026' : '#F2F3FA';
+    const surface = isDark ? '#23262D' : '#ECEDF4';
+    const surfaceHigh = isDark ? '#2B2E36' : '#E6E7EE';
+    const onSurface = isDark ? '#E2E2E9' : '#191C20';
+    const onSurfaceVariant = isDark ? '#C4C6D0' : '#43474E';
+    const outline = isDark ? '#8E9099' : '#73777F';
+    const outlineVariant = isDark ? '#44474F' : '#C3C7CF';
+
+    const now = s.now || new Date();
+    const START = this.START, END = this.END;
+    const todayISO = this.dateISO(0);
+    const tomorrowISO = this.dateISO(1);
+    const viewDateISO = this.dateISO(s.anchorOffset);
+    const viewDateObj = new Date();
+    viewDateObj.setDate(viewDateObj.getDate() + s.anchorOffset);
+    viewDateObj.setHours(0, 0, 0, 0);
+
+    const statusText = s.connected ? 'Live Fernbedienung Aktiv' : 'Verbinde...';
+    const statusBg = s.connected ? 'var(--md-accent-green-container)' : 'var(--md-surface-container-high)';
+    const statusFg = s.connected ? 'var(--md-accent-green)' : 'var(--md-on-surface-variant)';
+
+    const hourNow = now.getHours();
+    const greeting = hourNow < 11 ? 'Guten Morgen' : hourNow < 18 ? 'Guten Tag' : 'Guten Abend';
+    const clockStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    const clockDateStr = this.WD[now.getDay()] + '., ' + now.getDate() + '. ' + this.MONTHS_SHORT[now.getMonth()];
+    const viewedDateLong = this.formatLongDate(viewDateObj);
+
+    const dayChips = [];
+    for (let i = 0; i < 7; i++) {
+      const offset = s.anchorOffset + i;
+      const iso = this.dateISO(offset);
+      const d = new Date(); d.setDate(d.getDate() + offset); d.setHours(0, 0, 0, 0);
+      const selected = i === 0;
+      const top = offset === 0 ? 'Heute' : offset === 1 ? 'Morgen' : this.WD[d.getDay()];
+      dayChips.push({
+        key: 'chip_' + i, top, bottom: String(d.getDate()),
+        onSelect: () => {
+          this.setState({ anchorOffset: offset, viewMode: 'day' });
+          if (this.socket) this.socket.emit('control_action', { action: 'setOffset', anchorOffset: offset });
+        },
+        style: {
+          padding: '10px 8px', borderRadius: '16px', border: 'none', cursor: 'pointer', flex: '1 1 0', textAlign: 'center',
+          background: selected ? 'var(--md-primary)' : 'var(--md-surface-container-high)',
+          color: selected ? 'var(--md-on-primary)' : 'var(--md-on-surface)',
+        },
+      });
+    }
+
+    const dayData = this.buildEventsForDate(viewDateISO, START, END, now, s, false);
+    const dayEvents = dayData.events;
+    const showNowLine = dayData.showNowLine;
+    const nowLineTop = dayData.nowLineTop;
+
+    const gridHours = [];
+    for (let h = START; h <= END; h++) {
+      gridHours.push({ key: 'hr_' + h, label: String(h).padStart(2, '0') + ':00', top: (h - START) * 72 });
+    }
+    const gridHeightPx = (END - START) * 72;
+
+    const isDayMode = s.viewMode === 'day';
+    const isThreeDayMode = s.viewMode === '3day';
+    const isWeekMode = s.viewMode === 'week';
+    const isMultiDay = isThreeDayMode || isWeekMode;
+    const segBtnStyle = (active) => ({ padding: '6px 12px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600, background: active ? 'var(--md-surface-container-lowest)' : 'transparent', color: active ? 'var(--md-on-surface)' : 'var(--md-on-surface-variant)', boxShadow: active ? '0 1px 2px rgba(0,0,0,0.12)' : 'none' });
+    const dayModeBtnStyle = segBtnStyle(isDayMode);
+    const threeDayModeBtnStyle = segBtnStyle(isThreeDayMode);
+    const weekModeBtnStyle = segBtnStyle(isWeekMode);
+    const gutterMarginTop = isMultiDay ? '40px' : '0px';
+
+    const rangeColumns = [];
+    if (isMultiDay) {
+      const count = isWeekMode ? 7 : 3;
+      for (let i = 0; i < count; i++) {
+        const offset = s.anchorOffset + i;
+        const iso = this.dateISO(offset);
+        const d = new Date(); d.setDate(d.getDate() + offset); d.setHours(0, 0, 0, 0);
+        const top = offset === 0 ? 'Heute' : offset === 1 ? 'Morgen' : this.WD[d.getDay()];
+        const colData = this.buildEventsForDate(iso, START, END, now, s, true);
+        rangeColumns.push({ key: 'col_' + i, top, bottom: String(d.getDate()), events: colData.events, showNowLine: colData.showNowLine, nowLineTop: colData.nowLineTop });
+      }
+    }
+
+    const importantMails = [
+      { key: 1, initial: 'S', sender: 'Schule', subject: 'Elternabend nächste Woche', time: '08:12' },
+      { key: 2, initial: 'M', sender: 'Frau Meier (Lehrerin)', subject: 'Hausaufgaben-Update Mathe', time: 'Gestern' },
+      { key: 3, initial: 'V', sender: 'Verein', subject: 'Trainingszeiten geändert', time: 'Gestern' },
+      { key: 4, initial: 'E', sender: 'Eltern', subject: 'Wochenendplanung', time: 'Mo' },
+    ];
+
+    const tasksList = s.tasks || [];
+    const mapTask = (t) => ({
+      key: 't_' + t.id, title: t.title, done: !!t.done,
+      onToggle: () => this.toggleTaskDone(t.id),
+      checkboxStyle: { width: '20px', height: '20px', borderRadius: '6px', border: t.done ? 'none' : '2px solid var(--md-outline)', background: t.done ? 'var(--md-primary)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+      textStyle: { fontSize: '14px', color: t.done ? 'var(--md-on-surface-variant)' : 'var(--md-on-surface)', textDecoration: t.done ? 'line-through' : 'none' },
+    });
+    const hwList = tasksList.filter(t => t.type === 'hausaufgabe');
+    const todoList = tasksList.filter(t => t.type === 'todo');
+    const hwTasks = hwList.map(mapTask);
+    const todoTasks = todoList.map(mapTask);
+    const hwDoneLabel = hwList.filter(t => t.done).length + ' von ' + hwList.length + ' erledigt';
+    const todoDoneLabel = todoList.filter(t => t.done).length + ' von ' + todoList.length + ' erledigt';
+
+    const categoryOptions = Object.keys(this.categories).map(key => {
+      const cat = this.categories[key];
+      const selected = s.quickAddCat === key;
+      return {
+        key: 'cat_' + key, onSelect: () => this.setState({ quickAddCat: key }),
+        swatchStyle: { width: '22px', height: '22px', borderRadius: '50%', border: selected ? '2px solid var(--md-on-surface)' : '2px solid transparent', background: cat.dot, cursor: 'pointer', padding: 0 },
+      };
+    });
+
+    const weather = s.weather || {};
+    const weatherHourly = (s.hourly || []).map(h => ({
+      ...h,
+      key: 'wh_' + (h.key || h.time),
+      cardStyle: {
+        minWidth: '104px', borderRadius: '20px', padding: '16px 14px', textAlign: 'center', flexShrink: 0,
+        background: h.highlight ? 'var(--md-primary-container)' : 'var(--md-surface-container)',
+        color: h.highlight ? 'var(--md-on-primary-container)' : 'var(--md-on-surface)',
+      },
+    }));
+
+    const weatherBackdropStyle = {
+      position: 'fixed', inset: 0, background: 'rgba(25,28,32,0.4)', zIndex: 60,
+      opacity: s.weatherOpen ? 1 : 0, pointerEvents: s.weatherOpen ? 'auto' : 'none',
+      transition: 'opacity 0.3s ease',
+    };
+    const weatherSheetStyle = {
+      position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 61,
+      background: 'var(--md-surface-container-lowest)', borderRadius: '28px 28px 0 0',
+      padding: '28px 28px 36px', boxShadow: '0 -8px 24px rgba(0,0,0,0.15)',
+      transform: s.weatherOpen ? 'translateY(0)' : 'translateY(100%)',
+      transition: 'transform 0.35s cubic-bezier(0.2,0.8,0.2,1)',
+    };
+
+    const detailSrc = (s.events || []).find(e => e.id === s.detailEventId);
+    let detail = null;
+    if (detailSrc) {
+      const cat = this.categories[detailSrc.cat] || this.categories.sonstiges;
+      const parts = detailSrc.date.split('-').map(Number);
+      detail = {
+        title: detailSrc.title, catLabel: cat.label, dot: cat.dot,
+        dateLabel: this.dayLabelShort(detailSrc.date, todayISO, tomorrowISO) + ', ' + parts[2] + '.' + parts[1] + '.',
+        timeLabel: this.minutesToHHMM(detailSrc.start) + '-' + this.minutesToHHMM(detailSrc.end) + ' Uhr',
+        location: detailSrc.location || '', notes: detailSrc.notes || '',
+        hasLocation: !!detailSrc.location, hasNotes: !!detailSrc.notes,
+      };
+    }
+
+    const quickAddToggleStyle = { width: '32px', height: '32px', borderRadius: '10px', border: 'none', background: s.quickAddOpen ? 'var(--md-primary-container)' : 'var(--md-surface-container-high)', color: 'var(--md-on-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' };
+
+    return {
+      weatherOpen: s.weatherOpen, mailOpen: s.mailOpen, hwOpen: s.hwOpen, todoOpen: s.todoOpen,
+      darkMode: isDark, isLightMode, toggleDarkMode: this.toggleDarkMode,
+      rootBg, primary, onPrimary, primaryContainer, onPrimaryContainer,
+      surfaceLowest, surfaceLow, surface, surfaceHigh, onSurface, onSurfaceVariant, outline, outlineVariant,
+      greeting, viewedDateLong, clockStr, clockDateStr, weather, weatherHourly,
+      statusText, statusBg, statusFg,
+      dayChips,
+      isDayMode, isThreeDayMode, isWeekMode, isMultiDay,
+      dayModeBtnStyle, threeDayModeBtnStyle, weekModeBtnStyle,
+      setDayMode: this.setDayMode, setThreeDayMode: this.setThreeDayMode, setWeekMode: this.setWeekMode,
+      navPrev: this.navPrev, navNext: this.navNext, resetToToday: this.resetToToday,
+      toggleWeather: this.toggleWeather, toggleMail: this.toggleMail, toggleHwModal: this.toggleHwModal, toggleTodoModal: this.toggleTodoModal,
+      weatherBackdropStyle, weatherSheetStyle,
+      quickAddOpen: s.quickAddOpen, toggleQuickAdd: this.toggleQuickAdd, quickAddToggleStyle,
+      quickAddTitle: s.quickAddTitle, onQuickAddTitleChange: this.onQuickAddTitleChange,
+      quickAddTime: s.quickAddTime, onQuickAddTimeChange: this.onQuickAddTimeChange,
+      categoryOptions, confirmQuickAdd: this.confirmQuickAdd,
+      gridHeightPx, gridHours, gutterMarginTop, showNowLine, nowLineTop, dayEvents, rangeColumns,
+      detail, closeDetail: this.closeDetail, stopClickPropagation: (e) => e.stopPropagation(),
+      quickAddNotes: s.quickAddNotes, onQuickAddNotesChange: this.onQuickAddNotesChange,
+      importantMails,
+      hwTasks, hwDoneLabel, hwAddOpen: s.hwAddOpen, hwAddTitle: s.hwAddTitle,
+      onHwAddTitleChange: this.onHwAddTitleChange, onHwAddKeyDown: this.onHwAddKeyDown, toggleHwAdd: this.toggleHwAdd,
+      todoTasks, todoDoneLabel, todoAddOpen: s.todoAddOpen, todoAddTitle: s.todoAddTitle,
+      onTodoAddTitleChange: this.onTodoAddTitleChange, onTodoAddKeyDown: this.onTodoAddKeyDown, toggleTodoAdd: this.toggleTodoAdd,
+    };
+  }
+}
+</script>
+</body>
+</html>

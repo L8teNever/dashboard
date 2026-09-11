@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Flex:opsz,wght@8..144,400..700&display=swap" rel="stylesheet"/>
+<style>
+  html,body { margin:0; padding:0; height:100%; width:100%; transition:background 0.3s ease; }
+  * { box-sizing:border-box; }
+
+  .ctrl-root {
+    min-height: 100vh;
+    width: 100%;
+    font-family: 'Roboto', system-ui, sans-serif;
+    color: var(--md-on-surface);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  .ctrl-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    flex: 1;
+  }
+
+  .ctrl-col-left, .ctrl-col-right {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+  }
+
+  /* Responsive Landscape / Tablet Split */
+  @media (min-width: 680px) {
+    .ctrl-root {
+      padding: 24px;
+      height: 100vh;
+    }
+    .ctrl-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 20px;
+      height: calc(100vh - 48px);
+    }
+    .ctrl-col-left {
+      justify-content: space-between;
+    }
+    .ctrl-col-right {
+      height: 100%;
+    }
+  }
+
+  @media (min-width: 960px) {
+    .ctrl-grid {
+      grid-template-columns: 1.2fr 1fr;
+      gap: 28px;
+    }
+  }
+</style>
+</helmet>
+
+<div class="ctrl-root" style="background:{{ rootBg }}; --md-primary:{{ primary }}; --md-on-primary:{{ onPrimary }}; --md-primary-container:{{ primaryContainer }}; --md-on-primary-container:{{ onPrimaryContainer }}; --md-surface-container-lowest:{{ surfaceLowest }}; --md-surface-container-low:{{ surfaceLow }}; --md-surface-container:{{ surface }}; --md-surface-container-high:{{ surfaceHigh }}; --md-on-surface:{{ onSurface }}; --md-on-surface-variant:{{ onSurfaceVariant }}; --md-outline:{{ outline }}; --md-outline-variant:{{ outlineVariant }};">
+
+  <div class="ctrl-grid">
+
+    <!-- Left Column: ALL BUTTONS & HEADER -->
+    <div class="ctrl-col-left">
+
+      <!-- Top Header -->
+      <div style="display:flex; justifyContent:space-between; align-items:center;">
+        <div>
+          <div style="font-size:12px; color:var(--md-on-surface-variant); font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Fernbedienung</div>
+          <div onClick="{{ resetToToday }}" style="font-family:'Roboto Flex',sans-serif; font-size:26px; font-weight:600; margin-top:2px; cursor:pointer;" title="Klicken, um zu 'Heute' zu springen">{{ viewLabel }}</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button onClick="{{ toggleDarkMode }}" style="width:36px; height:36px; border-radius:12px; border:none; background:var(--md-surface-container-high); color:var(--md-on-surface); display:flex; align-items:center; justifyContent:center; cursor:pointer;" title="Dark Mode umschalten">
+            <sc-if value="{{ darkMode }}" hint-placeholder-val="{{ false }}">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path></svg>
+            </sc-if>
+            <sc-if value="{{ isLightMode }}" hint-placeholder-val="{{ true }}">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path></svg>
+            </sc-if>
+          </button>
+          <div style="font-size:12px; padding:6px 12px; border-radius:12px; font-weight:600; background:{{ statusBg }}; color:{{ statusFg }};">{{ statusText }}</div>
+        </div>
+      </div>
+
+      <!-- Navigation Prev / Next -->
+      <div style="display:flex; gap:10px;">
+        <button onClick="{{ navPrev }}" style="flex:1; height:60px; border-radius:16px; border:none; background:var(--md-surface-container-low); color:var(--md-on-surface); font-size:18px; font-weight:600; display:flex; align-items:center; justifyContent:center; gap:6px; cursor:pointer;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg>
+          Zurück
+        </button>
+        <button onClick="{{ navNext }}" style="flex:1; height:60px; border-radius:16px; border:none; background:var(--md-surface-container-low); color:var(--md-on-surface); font-size:18px; font-weight:600; display:flex; align-items:center; justifyContent:center; gap:6px; cursor:pointer;">
+          Weiter
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg>
+        </button>
+      </div>
+
+      <!-- Mode Selection -->
+      <div style="display:flex; gap:10px;">
+        <button onClick="{{ setDayMode }}" style="{{ dayBtnStyle }}">Tag</button>
+        <button onClick="{{ setThreeDayMode }}" style="{{ threeDayBtnStyle }}">3 Tage</button>
+        <button onClick="{{ setWeekMode }}" style="{{ weekBtnStyle }}">Woche</button>
+      </div>
+
+      <!-- Pop-Up Steering Grid Buttons -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <button onClick="{{ toggleWeather }}" style="{{ weatherBtnStyle }}">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+            <div style="display:flex; align-items:center; gap:6px; font-size:16px; font-weight:600;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16v3M12 16v4M16 16v3"></path><path d="M6 13a4 4 0 010-8 5 5 0 019.6-1.5A4.5 4.5 0 0118 13H6z"></path></svg>
+              <span>Wetter</span>
+            </div>
+            <div style="font-size:11px; opacity:0.85; font-weight:600;">{{ weatherStatusBadge }}</div>
+          </div>
+        </button>
+
+        <button onClick="{{ toggleMail }}" style="{{ mailBtnStyle }}">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+            <div style="display:flex; align-items:center; gap:6px; font-size:16px; font-weight:600;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="16" rx="3"></rect><path d="M22 6l-10 7L2 6"></path></svg>
+              <span>Mails Groß</span>
+            </div>
+            <div style="font-size:11px; opacity:0.85; font-weight:600;">{{ mailStatusBadge }}</div>
+          </div>
+        </button>
+
+        <button onClick="{{ toggleHw }}" style="{{ hwBtnStyle }}">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+            <div style="display:flex; align-items:center; gap:6px; font-size:16px; font-weight:600;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"></path></svg>
+              <span>Hausaufgaben</span>
+            </div>
+            <div style="font-size:11px; opacity:0.85; font-weight:600;">{{ hwStatusBadge }}</div>
+          </div>
+        </button>
+
+        <button onClick="{{ toggleTodo }}" style="{{ todoBtnStyle }}">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+            <div style="display:flex; align-items:center; gap:6px; font-size:16px; font-weight:600;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path></svg>
+              <span>To-Dos Groß</span>
+            </div>
+            <div style="font-size:11px; opacity:0.85; font-weight:600;">{{ todoStatusBadge }}</div>
+          </div>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Right Column: ONLY TOUCHPAD / SCROLL-FLÄCHE -->
+    <div class="ctrl-col-right">
+      <div style="background:var(--md-surface-container-low); border-radius:24px; padding:20px; display:flex; flex-direction:column; gap:12px; height:100%; min-height:260px;">
+        <div style="display:flex; justifyContent:space-between; align-items:center;">
+          <div style="font-size:16px; font-weight:600; color:var(--md-on-surface);">Touchpad / Scroll-Fläche</div>
+          <div style="font-size:12px; color:var(--md-on-surface-variant);">Mausrad & Wischgesten</div>
+        </div>
+        <div onWheel="{{ onTouchpadWheel }}" onPointerDown="{{ onTouchpadPointerDown }}" onPointerMove="{{ onTouchpadPointerMove }}" onPointerUp="{{ onTouchpadPointerUp }}" onPointerCancel="{{ onTouchpadPointerUp }}" style="flex:1; min-height:200px; background:var(--md-surface-container-lowest); border-radius:20px; border:2px dashed var(--md-outline-variant); display:flex; flex-direction:column; align-items:center; justifyContent:center; gap:12px; touch-action:none; user-select:none; cursor:ns-resize; position:relative; overflow:hidden;">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--md-primary)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M7 8l5-5 5 5M7 16l5 5 5-5"></path></svg>
+          <div style="font-size:17px; font-weight:600; color:var(--md-on-surface);">Hier wischen oder scrollen</div>
+          <div style="font-size:13px; color:var(--md-on-surface-variant);">Scrollt das Dashboard in Echtzeit hoch & runter</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.WD = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+    this.lastTouchY = 0;
+    this.touchpadActive = false;
+
+    this.state = {
+      anchorOffset: 0,
+      viewMode: 'day',
+      weatherOpen: false,
+      mailOpen: false,
+      hwOpen: false,
+      todoOpen: false,
+      darkMode: false,
+      connected: false,
+    };
+
+    this.navPrev = this.navPrev.bind(this);
+    this.navNext = this.navNext.bind(this);
+    this.resetToToday = this.resetToToday.bind(this);
+    this.setDayMode = this.setDayMode.bind(this);
+    this.setThreeDayMode = this.setThreeDayMode.bind(this);
+    this.setWeekMode = this.setWeekMode.bind(this);
+    this.toggleWeather = this.toggleWeather.bind(this);
+    this.toggleMail = this.toggleMail.bind(this);
+    this.toggleHw = this.toggleHw.bind(this);
+    this.toggleTodo = this.toggleTodo.bind(this);
+    this.toggleDarkMode = this.toggleDarkMode.bind(this);
+    this.onTouchpadWheel = this.onTouchpadWheel.bind(this);
+    this.onTouchpadPointerDown = this.onTouchpadPointerDown.bind(this);
+    this.onTouchpadPointerMove = this.onTouchpadPointerMove.bind(this);
+    this.onTouchpadPointerUp = this.onTouchpadPointerUp.bind(this);
+  }
+
+  componentDidMount() {
+    if (typeof io !== 'undefined') {
+      this.socket = io();
+      this.socket.on('connect', () => this.setState({ connected: true }));
+      this.socket.on('disconnect', () => this.setState({ connected: false }));
+      this.socket.on('state_sync', (data) => {
+        if (data) {
+          this.setState({
+            anchorOffset: data.anchorOffset !== undefined ? data.anchorOffset : this.state.anchorOffset,
+            viewMode: data.viewMode || this.state.viewMode,
+            weatherOpen: !!data.weatherOpen,
+            mailOpen: !!data.mailOpen,
+            hwOpen: !!data.hwOpen,
+            todoOpen: !!data.todoOpen,
+            darkMode: !!data.darkMode,
+          });
+        }
+      });
+      this.socket.on('control_action', (data) => {
+        if (data) {
+          if (data.action === 'toggleWeather') {
+            this.setState(s => ({ weatherOpen: !s.weatherOpen, mailOpen: false, hwOpen: false, todoOpen: false }));
+          } else if (data.action === 'toggleMail') {
+            this.setState(s => ({ mailOpen: !s.mailOpen, weatherOpen: false, hwOpen: false, todoOpen: false }));
+          } else if (data.action === 'toggleHw') {
+            this.setState(s => ({ hwOpen: !s.hwOpen, weatherOpen: false, mailOpen: false, todoOpen: false }));
+          } else if (data.action === 'toggleTodo') {
+            this.setState(s => ({ todoOpen: !s.todoOpen, weatherOpen: false, mailOpen: false, hwOpen: false }));
+          } else if (data.action === 'toggleDarkMode') {
+            this.setState(s => ({ darkMode: typeof data.darkMode === 'boolean' ? data.darkMode : !s.darkMode }));
+          } else if (data.action === 'closeAllModals') {
+            this.setState({ weatherOpen: false, mailOpen: false, hwOpen: false, todoOpen: false });
+          }
+        }
+      });
+    }
+  }
+
+  dateISO(offset) {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  sendAction(action, extra = {}) {
+    if (this.socket) {
+      this.socket.emit('control_action', { action, ...extra });
+    }
+  }
+
+  toggleDarkMode() {
+    const next = !this.state.darkMode;
+    this.setState({ darkMode: next });
+    this.sendAction('toggleDarkMode', { darkMode: next });
+  }
+
+  resetToToday() {
+    this.setState({ anchorOffset: 0 });
+    this.sendAction('setOffset', { anchorOffset: 0 });
+  }
+
+  navPrev() {
+    const step = this.state.viewMode === 'week' ? 7 : this.state.viewMode === '3day' ? 3 : 1;
+    const nextOffset = this.state.anchorOffset - step;
+    this.setState({ anchorOffset: nextOffset });
+    this.sendAction('navPrev', { anchorOffset: nextOffset });
+  }
+
+  navNext() {
+    const step = this.state.viewMode === 'week' ? 7 : this.state.viewMode === '3day' ? 3 : 1;
+    const nextOffset = this.state.anchorOffset + step;
+    this.setState({ anchorOffset: nextOffset });
+    this.sendAction('navNext', { anchorOffset: nextOffset });
+  }
+
+  setDayMode() {
+    this.setState({ viewMode: 'day' });
+    this.sendAction('setMode', { viewMode: 'day' });
+  }
+
+  setThreeDayMode() {
+    this.setState({ viewMode: '3day' });
+    this.sendAction('setMode', { viewMode: '3day' });
+  }
+
+  setWeekMode() {
+    this.setState({ viewMode: 'week' });
+    this.sendAction('setMode', { viewMode: 'week' });
+  }
+
+  toggleWeather() {
+    this.sendAction('toggleWeather');
+  }
+
+  toggleMail() {
+    this.sendAction('toggleMail');
+  }
+
+  toggleHw() {
+    this.sendAction('toggleHw');
+  }
+
+  toggleTodo() {
+    this.sendAction('toggleTodo');
+  }
+
+  onTouchpadWheel(e) {
+    if (e) {
+      if (e.preventDefault) e.preventDefault();
+      this.sendAction('scroll', { deltaY: e.deltaY });
+    }
+  }
+
+  onTouchpadPointerDown(e) {
+    if (e) {
+      if (e.currentTarget && e.currentTarget.setPointerCapture) {
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch(err) {}
+      }
+      this.lastTouchY = e.clientY;
+      this.touchpadActive = true;
+    }
+  }
+
+  onTouchpadPointerMove(e) {
+    if (!this.touchpadActive || !e) return;
+    const dy = this.lastTouchY - e.clientY;
+    this.lastTouchY = e.clientY;
+    if (Math.abs(dy) >= 0.1) {
+      this.sendAction('scroll', { deltaY: dy * 1.8 });
+    }
+  }
+
+  onTouchpadPointerUp(e) {
+    if (e && e.currentTarget && e.currentTarget.releasePointerCapture) {
+      try { e.currentTarget.releasePointerCapture(e.pointerId); } catch(err) {}
+    }
+    this.touchpadActive = false;
+  }
+
+  renderVals() {
+    const s = this.state;
+    const isDark = !!s.darkMode;
+    const isLightMode = !isDark;
+
+    const rootBg = isDark ? '#111318' : '#F8F9FF';
+    const primary = isDark ? '#A8C7FA' : '#0B57D0';
+    const onPrimary = isDark ? '#003062' : '#FFFFFF';
+    const primaryContainer = isDark ? '#004789' : '#D3E3FD';
+    const onPrimaryContainer = isDark ? '#D3E3FD' : '#041E49';
+    const surfaceLowest = isDark ? '#181A20' : '#FFFFFF';
+    const surfaceLow = isDark ? '#1D2026' : '#F2F3FA';
+    const surface = isDark ? '#23262D' : '#ECEDF4';
+    const surfaceHigh = isDark ? '#2B2E36' : '#E6E7EE';
+    const onSurface = isDark ? '#E2E2E9' : '#191C20';
+    const onSurfaceVariant = isDark ? '#C4C6D0' : '#43474E';
+    const outline = isDark ? '#8E9099' : '#73777F';
+    const outlineVariant = isDark ? '#44474F' : '#C3C7CF';
+
+    const d = this.dateISO(s.anchorOffset);
+    const offset = s.anchorOffset;
+    let dayPart = offset === 0 ? 'Heute' : offset === 1 ? 'Morgen' : offset === -1 ? 'Gestern' : this.WD[d.getDay()] + ', ' + d.getDate() + '.' + (d.getMonth() + 1) + '.';
+    const modeLabel = s.viewMode === 'week' ? 'Woche' : s.viewMode === '3day' ? '3 Tage' : 'Tag';
+    const viewLabel = dayPart + ' · ' + modeLabel;
+
+    const statusText = s.connected ? 'Verbunden' : 'Verbinde...';
+    const statusBg = s.connected ? (isDark ? 'rgba(46,125,91,0.25)' : 'var(--md-accent-green-container)') : 'var(--md-surface-container-high)';
+    const statusFg = s.connected ? (isDark ? '#6DDDA4' : 'var(--md-accent-green)') : 'var(--md-on-surface-variant)';
+
+    const segBtn = (active) => ({
+      flex: 1, height: '54px', borderRadius: '14px', border: 'none', cursor: 'pointer',
+      fontSize: '16px', fontWeight: 600,
+      background: active ? 'var(--md-primary)' : 'var(--md-surface-container-low)',
+      color: active ? 'var(--md-on-primary)' : 'var(--md-on-surface)',
+    });
+
+    const popBtn = (active) => ({
+      height: '68px', borderRadius: '16px', border: 'none', cursor: 'pointer',
+      fontSize: '15px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: active ? 'var(--md-primary-container)' : 'var(--md-surface-container-low)',
+      color: active ? 'var(--md-on-primary-container)' : 'var(--md-on-surface)',
+      boxShadow: active ? '0 0 0 3px var(--md-primary)' : 'none',
+      transition: 'all 0.2s ease',
+    });
+
+    return {
+      viewLabel, statusText, statusBg, statusFg, navPrev: this.navPrev, navNext: this.navNext, resetToToday: this.resetToToday,
+      darkMode: isDark, isLightMode, toggleDarkMode: this.toggleDarkMode,
+      rootBg, primary, onPrimary, primaryContainer, onPrimaryContainer,
+      surfaceLowest, surfaceLow, surface, surfaceHigh, onSurface, onSurfaceVariant, outline, outlineVariant,
+      dayBtnStyle: segBtn(s.viewMode === 'day'), threeDayBtnStyle: segBtn(s.viewMode === '3day'), weekBtnStyle: segBtn(s.viewMode === 'week'),
+      setDayMode: this.setDayMode, setThreeDayMode: this.setThreeDayMode, setWeekMode: this.setWeekMode,
+      weatherBtnStyle: popBtn(s.weatherOpen),
+      mailBtnStyle: popBtn(s.mailOpen),
+      hwBtnStyle: popBtn(s.hwOpen),
+      todoBtnStyle: popBtn(s.todoOpen),
+      weatherStatusBadge: s.weatherOpen ? '● GEÖFFNET' : 'Bereit',
+      mailStatusBadge: s.mailOpen ? '● GEÖFFNET' : 'Bereit',
+      hwStatusBadge: s.hwOpen ? '● GEÖFFNET' : 'Bereit',
+      todoStatusBadge: s.todoOpen ? '● GEÖFFNET' : 'Bereit',
+      toggleWeather: this.toggleWeather, toggleMail: this.toggleMail, toggleHw: this.toggleHw, toggleTodo: this.toggleTodo,
+      onTouchpadWheel: this.onTouchpadWheel,
+      onTouchpadPointerDown: this.onTouchpadPointerDown,
+      onTouchpadPointerMove: this.onTouchpadPointerMove,
+      onTouchpadPointerUp: this.onTouchpadPointerUp,
+    };
+  }
+}
+</script>
+</body>
+</html>
