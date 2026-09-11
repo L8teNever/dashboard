@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Flex:opsz,wght@8..144,400..700&display=swap" rel="stylesheet"/>
 <style>
-  html,body { margin:0; padding:0; height:100%; width:100%; transition:background 0.3s ease; }
+  html,body { margin:0; padding:0; height:100%; width:100%; overflow:hidden; transition:background 0.3s ease; }
   * { box-sizing:border-box; }
 
   .ctrl-root {
@@ -71,8 +71,11 @@
 </style>
 </helmet>
 
+<div style="{{ rotateFrameStyle }}">
+<div style="{{ rotateScrollStyle }}">
 <div class="ctrl-root" style="background:{{ rootBg }}; --md-primary:{{ primary }}; --md-on-primary:{{ onPrimary }}; --md-primary-container:{{ primaryContainer }}; --md-on-primary-container:{{ onPrimaryContainer }}; --md-surface-container-lowest:{{ surfaceLowest }}; --md-surface-container-low:{{ surfaceLow }}; --md-surface-container:{{ surface }}; --md-surface-container-high:{{ surfaceHigh }}; --md-on-surface:{{ onSurface }}; --md-on-surface-variant:{{ onSurfaceVariant }}; --md-outline:{{ outline }}; --md-outline-variant:{{ outlineVariant }};">
 
+  <sc-if value="{{ controlsOpen }}" hint-placeholder-val="{{ true }}">
   <div class="ctrl-grid">
 
     <!-- Left Column: ALL BUTTONS & HEADER -->
@@ -92,6 +95,9 @@
             <sc-if value="{{ isLightMode }}" hint-placeholder-val="{{ true }}">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path></svg>
             </sc-if>
+          </button>
+          <button onClick="{{ toggleSettings }}" style="width:36px; height:36px; border-radius:12px; border:none; background:var(--md-surface-container-high); color:var(--md-on-surface); display:flex; align-items:center; justifyContent:center; cursor:pointer;" title="Einstellungen (Bildschirm-Drehung)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>
           </button>
           <div style="font-size:12px; padding:6px 12px; border-radius:12px; font-weight:600; background:{{ statusBg }}; color:{{ statusFg }};">{{ statusText }}</div>
         </div>
@@ -177,7 +183,42 @@
     </div>
 
   </div>
+  </sc-if>
 
+  <!-- Settings-Unterseite: Bildschirm-Drehung -->
+  <sc-if value="{{ settingsOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex; flex-direction:column; gap:20px; flex:1;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <button onClick="{{ toggleSettings }}" style="width:36px; height:36px; border-radius:12px; border:none; background:var(--md-surface-container-high); color:var(--md-on-surface); display:flex; align-items:center; justifyContent:center; cursor:pointer;" title="Zurück">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg>
+        </button>
+        <div style="font-size:20px; font-weight:600;">Einstellungen</div>
+      </div>
+
+      <div style="background:var(--md-surface-container-low); border-radius:20px; padding:20px; display:flex; flex-direction:column; gap:12px;">
+        <div style="font-size:15px; font-weight:600;">Dashboard-Bildschirm drehen</div>
+        <div style="font-size:12px; color:var(--md-on-surface-variant);">Falls das Dashboard-Display gedreht montiert ist, wird die Anzeige entsprechend zurückgedreht.</div>
+        <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px;">
+          <sc-for list="{{ dashboardRotationOptions }}" as="opt" hint-placeholder-count="4">
+            <button onClick="{{ opt.onSelect }}" style="{{ opt.style }}">{{ opt.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="background:var(--md-surface-container-low); border-radius:20px; padding:20px; display:flex; flex-direction:column; gap:12px;">
+        <div style="font-size:15px; font-weight:600;">Diese Fernbedienungs-Seite drehen</div>
+        <div style="font-size:12px; color:var(--md-on-surface-variant);">Falls dieses Steuerungs-Gerät selbst gedreht montiert ist.</div>
+        <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px;">
+          <sc-for list="{{ steuerungRotationOptions }}" as="opt" hint-placeholder-count="4">
+            <button onClick="{{ opt.onSelect }}" style="{{ opt.style }}">{{ opt.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</div>
 </div>
 
 </x-dc>
@@ -198,6 +239,9 @@ class Component extends DCLogic {
       todoOpen: false,
       darkMode: false,
       connected: false,
+      settingsOpen: false,
+      dashboardRotation: 0,
+      steuerungRotation: 0,
     };
 
     this.navPrev = this.navPrev.bind(this);
@@ -215,6 +259,9 @@ class Component extends DCLogic {
     this.onTouchpadPointerDown = this.onTouchpadPointerDown.bind(this);
     this.onTouchpadPointerMove = this.onTouchpadPointerMove.bind(this);
     this.onTouchpadPointerUp = this.onTouchpadPointerUp.bind(this);
+    this.toggleSettings = this.toggleSettings.bind(this);
+    this.setDashboardRotation = this.setDashboardRotation.bind(this);
+    this.setSteuerungRotation = this.setSteuerungRotation.bind(this);
   }
 
   componentDidMount() {
@@ -232,6 +279,8 @@ class Component extends DCLogic {
             hwOpen: !!data.hwOpen,
             todoOpen: !!data.todoOpen,
             darkMode: !!data.darkMode,
+            dashboardRotation: data.dashboardRotation !== undefined ? data.dashboardRotation : this.state.dashboardRotation,
+            steuerungRotation: data.steuerungRotation !== undefined ? data.steuerungRotation : this.state.steuerungRotation,
           });
         }
       });
@@ -249,6 +298,10 @@ class Component extends DCLogic {
             this.setState(s => ({ darkMode: typeof data.darkMode === 'boolean' ? data.darkMode : !s.darkMode }));
           } else if (data.action === 'closeAllModals') {
             this.setState({ weatherOpen: false, mailOpen: false, hwOpen: false, todoOpen: false });
+          } else if (data.action === 'setDashboardRotation') {
+            this.setState({ dashboardRotation: data.rotation || 0 });
+          } else if (data.action === 'setSteuerungRotation') {
+            this.setState({ steuerungRotation: data.rotation || 0 });
           }
         }
       });
@@ -272,6 +325,30 @@ class Component extends DCLogic {
     const next = !this.state.darkMode;
     this.setState({ darkMode: next });
     this.sendAction('toggleDarkMode', { darkMode: next });
+  }
+
+  toggleSettings() {
+    this.setState(s => ({ settingsOpen: !s.settingsOpen }));
+  }
+  setDashboardRotation(deg) {
+    this.setState({ dashboardRotation: deg });
+    this.sendAction('setDashboardRotation', { rotation: deg });
+  }
+  setSteuerungRotation(deg) {
+    this.setState({ steuerungRotation: deg });
+    this.sendAction('setSteuerungRotation', { rotation: deg });
+  }
+
+  // Bei gedrehter Anzeige (rotateFrameStyle) zeigen echte Bildschirm-Koordinaten
+  // nicht mehr in die Richtung, die die Touchpad-Fläche intern erwartet. Deltas
+  // müssen deshalb zurück in den unrotierten Koordinatenraum gedreht werden.
+  rotateDelta(dx, dy, deg) {
+    switch (((deg % 360) + 360) % 360) {
+      case 90: return { dx: dy, dy: -dx };
+      case 180: return { dx: -dx, dy: -dy };
+      case 270: return { dx: -dy, dy: dx };
+      default: return { dx, dy };
+    }
   }
 
   resetToToday() {
@@ -336,6 +413,7 @@ class Component extends DCLogic {
       if (e.currentTarget && e.currentTarget.setPointerCapture) {
         try { e.currentTarget.setPointerCapture(e.pointerId); } catch(err) {}
       }
+      this.lastTouchX = e.clientX;
       this.lastTouchY = e.clientY;
       this.touchpadActive = true;
     }
@@ -343,10 +421,13 @@ class Component extends DCLogic {
 
   onTouchpadPointerMove(e) {
     if (!this.touchpadActive || !e) return;
-    const dy = this.lastTouchY - e.clientY;
+    const rawDx = e.clientX - this.lastTouchX;
+    const rawDy = e.clientY - this.lastTouchY;
+    this.lastTouchX = e.clientX;
     this.lastTouchY = e.clientY;
+    const { dy } = this.rotateDelta(rawDx, rawDy, this.state.steuerungRotation || 0);
     if (Math.abs(dy) >= 0.1) {
-      this.sendAction('scroll', { deltaY: dy * 1.8 });
+      this.sendAction('scroll', { deltaY: -dy * 1.8 });
     }
   }
 
@@ -361,6 +442,17 @@ class Component extends DCLogic {
     const s = this.state;
     const isDark = !!s.darkMode;
     const isLightMode = !isDark;
+    const controlsOpen = !s.settingsOpen;
+
+    const rotDeg = ((s.steuerungRotation % 360) + 360) % 360;
+    const rotSwapped = rotDeg === 90 || rotDeg === 270;
+    const rotateFrameStyle = {
+      position: 'fixed', top: '50%', left: '50%',
+      width: rotSwapped ? '100vh' : '100vw', height: rotSwapped ? '100vw' : '100vh',
+      transform: 'translate(-50%, -50%) rotate(' + rotDeg + 'deg)', transformOrigin: 'center center',
+      overflow: 'hidden',
+    };
+    const rotateScrollStyle = { width: '100%', height: '100%', overflowY: 'auto', WebkitOverflowScrolling: 'touch' };
 
     const rootBg = isDark ? '#111318' : '#F8F9FF';
     const primary = isDark ? '#A8C7FA' : '#0B57D0';
@@ -393,6 +485,19 @@ class Component extends DCLogic {
       color: active ? 'var(--md-on-primary)' : 'var(--md-on-surface)',
     });
 
+    const rotationOptions = (current, setter) => [0, 90, 180, 270].map(deg => ({
+      key: 'rot_' + deg,
+      label: deg + '°',
+      onSelect: () => setter(deg),
+      style: {
+        height: '48px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: 600,
+        background: current === deg ? 'var(--md-primary)' : 'var(--md-surface-container-high)',
+        color: current === deg ? 'var(--md-on-primary)' : 'var(--md-on-surface)',
+      },
+    }));
+    const dashboardRotationOptions = rotationOptions(s.dashboardRotation, this.setDashboardRotation);
+    const steuerungRotationOptions = rotationOptions(s.steuerungRotation, this.setSteuerungRotation);
+
     const popBtn = (active) => ({
       height: '68px', borderRadius: '16px', border: 'none', cursor: 'pointer',
       fontSize: '15px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -422,6 +527,9 @@ class Component extends DCLogic {
       onTouchpadPointerDown: this.onTouchpadPointerDown,
       onTouchpadPointerMove: this.onTouchpadPointerMove,
       onTouchpadPointerUp: this.onTouchpadPointerUp,
+      controlsOpen, settingsOpen: s.settingsOpen, toggleSettings: this.toggleSettings,
+      rotateFrameStyle, rotateScrollStyle,
+      dashboardRotationOptions, steuerungRotationOptions,
     };
   }
 }

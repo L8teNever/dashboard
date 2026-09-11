@@ -69,6 +69,10 @@ def handle_control_action(data):
         dashboard_state["darkMode"] = data.get("darkMode", not dashboard_state["darkMode"])
     elif action == "setOffset":
         dashboard_state["anchorOffset"] = data.get("anchorOffset", 0)
+    elif action == "setDashboardRotation":
+        dashboard_state["dashboardRotation"] = data.get("rotation", 0) if data.get("rotation") in (0, 90, 180, 270) else 0
+    elif action == "setSteuerungRotation":
+        dashboard_state["steuerungRotation"] = data.get("rotation", 0) if data.get("rotation") in (0, 90, 180, 270) else 0
 
     # Broadcast updated action & state to all connected clients (Dashboard + Fernbedienung)
     emit("control_action", data, broadcast=True)

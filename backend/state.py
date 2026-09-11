@@ -6,4 +6,6 @@ dashboard_state = {
     "hwOpen": False,
     "todoOpen": False,
     "darkMode": False,
+    "dashboardRotation": 0,
+    "steuerungRotation": 0,
 }

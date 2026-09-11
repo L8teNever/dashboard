@@ -13,7 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Roboto+Flex:opsz,wght@8..144,400..700&display=swap" rel="stylesheet"/>
 <style>
-  html,body{margin:0;padding:0;}
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;}
   *{box-sizing:border-box;}
   @keyframes md-pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
   a{color:var(--md-primary);}
@@ -55,6 +55,8 @@
   }
 </style>
 </helmet>
+<div style="{{ rotateFrameStyle }}">
+<div id="dash-scroll-frame" style="{{ rotateScrollStyle }}">
 <div class="dash-root" style="min-height:100vh;width:100%;background:{{ rootBg }};--md-primary:{{ primary }};--md-on-primary:{{ onPrimary }};--md-primary-container:{{ primaryContainer }};--md-on-primary-container:{{ onPrimaryContainer }};--md-secondary:#3A608F;--md-secondary-container:#D8E3F8;--md-on-secondary-container:#0D1B2E;--md-tertiary:#6B5778;--md-tertiary-container:#F2DAFF;--md-on-tertiary-container:#25132D;--md-accent-green:#2E7D5B;--md-accent-green-container:#D7F2E3;--md-on-accent-green-container:#08341F;--md-surface-container-lowest:{{ surfaceLowest }};--md-surface-container-low:{{ surfaceLow }};--md-surface-container:{{ surface }};--md-surface-container-high:{{ surfaceHigh }};--md-on-surface:{{ onSurface }};--md-on-surface-variant:{{ onSurfaceVariant }};--md-outline:{{ outline }};--md-outline-variant:{{ outlineVariant }};--md-error:#BA1A1A; font-family:'Roboto',system-ui,sans-serif; color:var(--md-on-surface); padding:32px; display:flex; flex-direction:column; gap:20px; transition:background 0.3s ease, color 0.3s ease;">
 
   <div class="dash-layout">
@@ -476,6 +478,9 @@
 
 </div>
 
+</div>
+</div>
+
 </x-dc>
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
@@ -518,6 +523,7 @@ class Component extends DCLogic {
       todoOpen: false,
       darkMode: false,
       connected: false,
+      dashboardRotation: 0,
       weather: { city: 'Berlin', tempLabel: '21°', condition: 'Bewölkt ⛅', windLabel: '14 km/h Wind', rainLabel: '20% Regen' },
       hourly: [
         { key: 1, time: '08:00', temp: '19°', rain: '10%', highlight: false },
@@ -625,6 +631,7 @@ class Component extends DCLogic {
             hwOpen: data.hwOpen !== undefined ? data.hwOpen : this.state.hwOpen,
             todoOpen: data.todoOpen !== undefined ? data.todoOpen : this.state.todoOpen,
             darkMode: data.darkMode !== undefined ? data.darkMode : this.state.darkMode,
+            dashboardRotation: data.dashboardRotation !== undefined ? data.dashboardRotation : this.state.dashboardRotation,
           });
         }
       });
@@ -663,9 +670,12 @@ class Component extends DCLogic {
           this.setState(s => ({ darkMode: typeof data.darkMode === 'boolean' ? data.darkMode : !s.darkMode }));
         } else if (data.action === 'setOffset') {
           this.setState({ anchorOffset: data.anchorOffset });
+        } else if (data.action === 'setDashboardRotation') {
+          this.setState({ dashboardRotation: data.rotation || 0 });
         } else if (data.action === 'scroll') {
           const delta = data.deltaY || 0;
-          window.scrollBy(0, delta);
+          const frame = document.getElementById('dash-scroll-frame');
+          if (frame) frame.scrollBy(0, delta);
         }
       });
     }
@@ -785,6 +795,19 @@ class Component extends DCLogic {
     ];
   }
 
+  // Bei gedrehter Anzeige (rotateFrameStyle) zeigen echte Bildschirm-Koordinaten
+  // (e.clientX/Y) nicht mehr in die Richtung, die die App intern erwartet -- z.B.
+  // wird aus "nach unten ziehen" bei 90°-Drehung ein "nach rechts ziehen" auf dem
+  // Bildschirm. Bewegungs-Deltas müssen deshalb zurück in den unrotierten
+  // Koordinatenraum gedreht werden, bevor sie fürs Umplanen/Scrollen benutzt werden.
+  rotateDelta(dx, dy, deg) {
+    switch (((deg % 360) + 360) % 360) {
+      case 90: return { dx: dy, dy: -dx };
+      case 180: return { dx: -dx, dy: -dy };
+      case 270: return { dx: -dy, dy: dx };
+      default: return { dx, dy };
+    }
+  }
   onDragStart(id, e) {
     e.preventDefault();
     const ev = this.state.events.find(x => x.id === id);
@@ -796,7 +819,9 @@ class Component extends DCLogic {
   }
   onDragMove(e) {
     if (!this.dragInfo) return;
-    const dy = e.clientY - this.dragInfo.startY;
+    const rawDx = e.clientX - this.dragInfo.startX;
+    const rawDy = e.clientY - this.dragInfo.startY;
+    const { dy } = this.rotateDelta(rawDx, rawDy, this.state.dashboardRotation || 0);
     const deltaMin = Math.round((dy / 72 * 60) / 15) * 15;
     this.setState({ dragDeltaMin: deltaMin });
   }
@@ -941,6 +966,16 @@ class Component extends DCLogic {
     const s = this.state;
     const isDark = !!s.darkMode;
     const isLightMode = !isDark;
+
+    const rotDeg = ((s.dashboardRotation % 360) + 360) % 360;
+    const rotSwapped = rotDeg === 90 || rotDeg === 270;
+    const rotateFrameStyle = {
+      position: 'fixed', top: '50%', left: '50%',
+      width: rotSwapped ? '100vh' : '100vw', height: rotSwapped ? '100vw' : '100vh',
+      transform: 'translate(-50%, -50%) rotate(' + rotDeg + 'deg)', transformOrigin: 'center center',
+      overflow: 'hidden',
+    };
+    const rotateScrollStyle = { width: '100%', height: '100%', overflowY: 'auto', WebkitOverflowScrolling: 'touch' };
 
     const rootBg = isDark ? '#111318' : '#F8F9FF';
     const primary = isDark ? '#A8C7FA' : '#0B57D0';
@@ -1124,7 +1159,7 @@ class Component extends DCLogic {
       quickAddTime: s.quickAddTime, onQuickAddTimeChange: this.onQuickAddTimeChange,
       categoryOptions, confirmQuickAdd: this.confirmQuickAdd,
       gridHeightPx, gridHours, gutterMarginTop, showNowLine, nowLineTop, dayEvents, rangeColumns,
-      dayAllDayEvents, dayAllDayBarStyle,
+      dayAllDayEvents, dayAllDayBarStyle, rotateFrameStyle, rotateScrollStyle,
       detail, closeDetail: this.closeDetail, stopClickPropagation: (e) => e.stopPropagation(),
       quickAddNotes: s.quickAddNotes, onQuickAddNotesChange: this.onQuickAddNotesChange,
       importantMails,
