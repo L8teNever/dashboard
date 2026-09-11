@@ -38,6 +38,17 @@ def _init_db():
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS mails (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sender TEXT NOT NULL,
+                subject TEXT NOT NULL,
+                body TEXT NOT NULL DEFAULT '',
+                received_at TEXT NOT NULL DEFAULT (datetime('now'))
+            )
+            """
+        )
 
 
 @contextmanager
@@ -177,6 +188,60 @@ def _task_dict(row):
         "title": row["title"],
         "done": bool(row["done"]),
         "type": row["type"],
+    }
+
+
+# --- Mails ------------------------------------------------------------
+
+def list_mails():
+    with _connect() as conn:
+        rows = conn.execute("SELECT * FROM mails ORDER BY received_at DESC, id DESC").fetchall()
+    return [_mail_dict(r) for r in rows]
+
+
+def create_mail(sender, subject, body=""):
+    with _connect() as conn:
+        cur = conn.execute(
+            "INSERT INTO mails (sender, subject, body) VALUES (?, ?, ?)",
+            (sender, subject, body),
+        )
+        row = conn.execute("SELECT * FROM mails WHERE id = ?", (cur.lastrowid,)).fetchone()
+    return _mail_dict(row)
+
+
+def update_mail(mail_id, **fields):
+    row_id = _row_id(mail_id)
+    allowed = {"sender", "subject", "body"}
+    updates = {k: v for k, v in fields.items() if k in allowed and v is not None}
+    if not updates:
+        return get_mail(mail_id)
+    with _connect() as conn:
+        set_clause = ", ".join(f"{k} = ?" for k in updates)
+        conn.execute(f"UPDATE mails SET {set_clause} WHERE id = ?", (*updates.values(), row_id))
+        row = conn.execute("SELECT * FROM mails WHERE id = ?", (row_id,)).fetchone()
+    return _mail_dict(row) if row else None
+
+
+def get_mail(mail_id):
+    with _connect() as conn:
+        row = conn.execute("SELECT * FROM mails WHERE id = ?", (_row_id(mail_id),)).fetchone()
+    return _mail_dict(row) if row else None
+
+
+def delete_mail(mail_id):
+    row_id = _row_id(mail_id)
+    with _connect() as conn:
+        cur = conn.execute("DELETE FROM mails WHERE id = ?", (row_id,))
+    return cur.rowcount > 0
+
+
+def _mail_dict(row):
+    return {
+        "id": _local_id(row["id"]),
+        "sender": row["sender"],
+        "subject": row["subject"],
+        "body": row["body"],
+        "received_at": row["received_at"],
     }
 
 

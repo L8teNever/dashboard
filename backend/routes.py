@@ -49,6 +49,11 @@ def get_tasks():
     return jsonify({"tasks": tasks, "google_connected": calendar_service.is_connected()})
 
 
+@routes_bp.route("/api/mails")
+def get_mails():
+    return jsonify({"mails": store.list_mails()})
+
+
 @routes_bp.route("/api/status")
 def get_status():
     return jsonify(

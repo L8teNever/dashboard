@@ -387,7 +387,7 @@
                   <div style="font-size:14px; color:var(--md-on-surface-variant);">{{ m.time }}</div>
                 </div>
                 <div style="font-size:16px; color:var(--md-on-surface); font-weight:500; margin-top:4px;">{{ m.subject }}</div>
-                <div style="font-size:14px; color:var(--md-on-surface-variant); margin-top:8px; line-height:1.5;">Hallo, bitte beachtet die aktuellen Hinweise im Anhang sowie den Termin für nächste Woche. Bei Fragen gerne melden!</div>
+                <div style="font-size:14px; color:var(--md-on-surface-variant); margin-top:8px; line-height:1.5;">{{ m.body }}</div>
               </div>
             </div>
           </sc-for>
@@ -695,6 +695,15 @@ class Component extends DCLogic {
         }
       })
       .catch(err => console.log('Tasks API Note:', err));
+
+    fetch('/api/mails')
+      .then(res => res.json())
+      .then(data => {
+        if (data && Array.isArray(data.mails)) {
+          this.setState({ mails: data.mails });
+        }
+      })
+      .catch(err => console.log('Mails API Note:', err));
   }
 
   dateISO(offset) {
@@ -705,6 +714,20 @@ class Component extends DCLogic {
   }
   fmtISO(d) {
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  formatMailTime(receivedAt) {
+    if (!receivedAt) return '';
+    const d = new Date(receivedAt.replace(' ', 'T') + 'Z');
+    if (isNaN(d.getTime())) return '';
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfMailDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const dayDiff = Math.round((startOfToday - startOfMailDay) / 86400000);
+    const hhmm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    if (dayDiff === 0) return hhmm;
+    if (dayDiff === 1) return 'Gestern';
+    if (dayDiff < 7) return this.WD[d.getDay()];
+    return this.fmtISO(d);
   }
   minutesToHHMM(min) {
     const h = Math.floor(min / 60), m = min % 60;
@@ -978,12 +1001,14 @@ class Component extends DCLogic {
       }
     }
 
-    const importantMails = [
-      { key: 1, initial: 'S', sender: 'Schule', subject: 'Elternabend nächste Woche', time: '08:12' },
-      { key: 2, initial: 'M', sender: 'Frau Meier (Lehrerin)', subject: 'Hausaufgaben-Update Mathe', time: 'Gestern' },
-      { key: 3, initial: 'V', sender: 'Verein', subject: 'Trainingszeiten geändert', time: 'Gestern' },
-      { key: 4, initial: 'E', sender: 'Eltern', subject: 'Wochenendplanung', time: 'Mo' },
-    ];
+    const importantMails = (s.mails || []).map(m => ({
+      key: 'mail_' + m.id,
+      initial: ((m.sender || '?').trim().charAt(0) || '?').toUpperCase(),
+      sender: m.sender,
+      subject: m.subject,
+      body: m.body,
+      time: this.formatMailTime(m.received_at),
+    }));
 
     const tasksList = s.tasks || [];
     const mapTask = (t) => ({

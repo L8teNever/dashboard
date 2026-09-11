@@ -65,7 +65,7 @@ Dashboard/
 │   ├── routes.py                   # HTTP-Routen (/, /steuerung, /api/*)
 │   ├── sockets.py                  # SocketIO-Event-Handler (Echtzeit-Sync)
 │   ├── state.py                    # Gemeinsamer Dashboard-Zustand
-│   ├── store.py                    # SQLite-Ablage für per MCP angelegte Termine/Tasks
+│   ├── store.py                    # SQLite-Ablage für per MCP angelegte Termine/Tasks/Mails
 │   └── services/
 │       ├── calendar_provider.py    # Wählt MCP- oder Google-OAuth-Kalenderquelle
 │       ├── mcp_calendar.py         # Kalenderdaten via fremden MCP-Server (Server-Deployment)
@@ -118,7 +118,7 @@ Danach `docker compose up -d` (oder `docker compose restart`, falls der Containe
 
 ## 🤖 MCP-Server des Dashboards (für eine KI)
 
-`mcp_server.py` ist ein **eigener MCP-Server**, getrennt vom Dashboard selbst, auf einem zweiten Port. Er ist die Umkehrung von `MCP_SERVER_URL` oben: dort holt sich *dieses* Dashboard Daten von einem fremden Server, hier ist *dieses* Dashboard selbst der Server, mit dem sich eine KI (z.B. ein Mail-Assistent mit Gmail-Zugriff) verbindet, um Termine sowie Hausaufgaben/Todos direkt auf dem Dashboard anzulegen, zu bearbeiten und zu löschen.
+`mcp_server.py` ist ein **eigener MCP-Server**, getrennt vom Dashboard selbst, auf einem zweiten Port. Er ist die Umkehrung von `MCP_SERVER_URL` oben: dort holt sich *dieses* Dashboard Daten von einem fremden Server, hier ist *dieses* Dashboard selbst der Server, mit dem sich eine KI (z.B. ein Mail-Assistent mit Gmail-Zugriff) verbindet, um Termine, Hausaufgaben/Todos sowie wichtige Mails direkt auf dem Dashboard anzulegen, zu bearbeiten und zu löschen.
 
 **Typischer Anwendungsfall:** Eine KI mit Zugriff auf ein Postfach erkennt eine wichtige E-Mail (z.B. Einladung zum Elternabend) und ruft darauf `create_event` auf diesem MCP-Server auf. Der Termin taucht danach **sofort** auf allen offenen Dashboard-Seiten auf (Live-Update per Socket.IO, kein Warten auf das Polling-Intervall nötig — das läuft als Sicherheitsnetz alle 5 Minuten trotzdem mit, z.B. falls kurz kein Client verbunden war). Das Lesen der E-Mails übernimmt die KI selbst (z.B. über ein Gmail-MCP) — dieses Projekt stellt nur die Werkzeuge zum Schreiben auf das Dashboard bereit.
 
@@ -130,8 +130,9 @@ Technisch: nach jeder erfolgreichen Änderung ruft `mcp_server.py` intern `POST 
 |---|---|
 | `list_events` / `create_event` / `update_event` / `delete_event` | Termine verwalten. `date` = `YYYY-MM-DD`, `start_time`/`end_time` = `HH:MM`, `cat` ∈ `schule, lernen, sport, familie, sonstiges` |
 | `list_tasks` / `create_task` / `update_task` / `delete_task` | Hausaufgaben/Todos verwalten. `type` ∈ `hausaufgabe, todo` |
+| `list_mails` / `create_mail` / `update_mail` / `delete_mail` | "Wichtige Mails"-Bereich verwalten. `sender`, `subject`, optional `body` |
 
-Die Daten liegen in einer eigenen SQLite-Datenbank (`backend/store.py`, Volume `dashboard-data`) und werden in `/api/events` bzw. `/api/tasks` mit den Kalender-Terminen (Option A/B oben) zusammengeführt — beide Quellen laufen parallel, unabhängig voneinander.
+Die Daten liegen in einer eigenen SQLite-Datenbank (`backend/store.py`, Volume `dashboard-data`). Termine/Tasks werden in `/api/events` bzw. `/api/tasks` mit den Kalender-Terminen (Option A/B oben) zusammengeführt — beide Quellen laufen parallel, unabhängig voneinander. Mails kommen ausschließlich aus dieser lokalen Ablage (`/api/mails`), es gibt keine externe Mail-Quelle in diesem Projekt.
 
 ### Einrichten
 

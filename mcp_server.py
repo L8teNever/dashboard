@@ -188,6 +188,52 @@ def delete_task(task_id: str) -> dict:
     return {"deleted": task_id}
 
 
+@mcp.tool()
+def list_mails() -> list[dict]:
+    """Listet die aktuell als wichtig markierten Mails auf dem Dashboard (neueste zuerst)."""
+    return store.list_mails()
+
+
+@mcp.tool()
+def create_mail(sender: str, subject: str, body: str = "") -> dict:
+    """
+    Markiert eine E-Mail als wichtig, damit sie im "Wichtige Mails"-Bereich
+    des Dashboards erscheint -- z.B. wenn eine KI mit Postfach-Zugriff eine
+    wirklich relevante Mail erkennt (Schule, Verein, Termin-Änderung, ...).
+
+    sender: Absendername, z.B. "Frau Meier (Lehrerin)"
+    subject: Betreff der Mail
+    body: kurze Zusammenfassung/Auszug des Inhalts (optional)
+    """
+    mail = store.create_mail(sender=sender, subject=subject, body=body)
+    _notify_dashboard()
+    return mail
+
+
+@mcp.tool()
+def update_mail(
+    mail_id: str,
+    sender: Optional[str] = None,
+    subject: Optional[str] = None,
+    body: Optional[str] = None,
+) -> dict:
+    """Bearbeitet eine bestehende wichtige Mail (mail_id aus list_mails)."""
+    mail = store.update_mail(mail_id, sender=sender, subject=subject, body=body)
+    if mail is None:
+        raise ValueError(f"Mail '{mail_id}' wurde nicht gefunden.")
+    _notify_dashboard()
+    return mail
+
+
+@mcp.tool()
+def delete_mail(mail_id: str) -> dict:
+    """Entfernt eine Mail wieder aus dem "Wichtige Mails"-Bereich (mail_id aus list_mails)."""
+    if not store.delete_mail(mail_id):
+        raise ValueError(f"Mail '{mail_id}' wurde nicht gefunden.")
+    _notify_dashboard()
+    return {"deleted": mail_id}
+
+
 class BearerAuthMiddleware:
     """Reines ASGI-Middleware (kein BaseHTTPMiddleware), damit Streamable-HTTP-Streaming unangetastet bleibt."""
 
