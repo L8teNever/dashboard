@@ -46,10 +46,11 @@ class GoogleCalendarService:
             try:
                 creds = Credentials.from_authorized_user_file(self.token_path, SCOPES)
             except Exception as e:
-                logger.error(f"Error loading token.json: {e}")
+                logger.info(f"token.json nicht im Standardformat ({e}), versuche geteiltes Token.")
+                creds = self._load_shared_token(self.token_path)
 
         if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
+            if creds and creds.refresh_token:
                 try:
                     creds.refresh(Request())
                 except Exception as e:
@@ -71,6 +72,33 @@ class GoogleCalendarService:
                 logger.info("Successfully connected to Google Calendar API!")
             except Exception as e:
                 logger.error(f"Failed to build Google API client: {e}")
+
+    def _load_shared_token(self, path):
+        """
+        Laedt ein Token, das von einem anderen Dienst (z.B. Ida-Google) verwaltet wird und
+        nur {"refresh_token": ..., "granted_scopes": [...]} enthaelt statt des vollen
+        google-auth-Formats. GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET muessen zum selben
+        OAuth-Client gehoeren, der diesen Refresh-Token ausgestellt hat.
+        """
+        client_id = os.getenv("GOOGLE_CLIENT_ID")
+        client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+        if not client_id or not client_secret:
+            logger.error("GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET fehlen, kann geteiltes Token nicht nutzen.")
+            return None
+        try:
+            with open(path) as f:
+                data = json.load(f)
+            return Credentials(
+                token=None,
+                refresh_token=data["refresh_token"],
+                token_uri="https://oauth2.googleapis.com/token",
+                client_id=client_id,
+                client_secret=client_secret,
+                scopes=data.get("granted_scopes", SCOPES),
+            )
+        except Exception as e:
+            logger.error(f"Konnte geteiltes Token nicht lesen: {e}")
+            return None
 
     def is_connected(self):
         return self.service is not None
