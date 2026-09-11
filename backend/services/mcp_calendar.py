@@ -102,8 +102,22 @@ class MCPCalendarService:
     def _call_tool(self, tool_name):
         if not self.is_configured() or not tool_name:
             return None
+
+        def run():
+            return asyncio.run(asyncio.wait_for(self._call_tool_async(tool_name), timeout=self.timeout))
+
         try:
-            result = asyncio.run(asyncio.wait_for(self._call_tool_async(tool_name), timeout=self.timeout))
+            # asyncio.run() does NOT yield to gevent's hub even after monkey-patching
+            # (verified: it blocks the whole process for its full duration), which
+            # would freeze every other connected client (dashboard + Fernbedienung)
+            # for up to MCP_TOOL_TIMEOUT seconds on every calendar fetch. Running it
+            # in gevent's real threadpool keeps the rest of the app responsive.
+            if os.environ.get("USE_GEVENT"):
+                import gevent
+
+                result = gevent.get_hub().threadpool.apply(run)
+            else:
+                result = run()
             logger.info(f"MCP-Tool '{tool_name}' auf {self.server_url} hat innerhalb von {self.timeout}s geantwortet.")
             return self._extract_payload(result)
         except asyncio.TimeoutError:

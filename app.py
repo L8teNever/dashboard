@@ -1,5 +1,18 @@
-import logging
 import os
+
+if os.environ.get("USE_GEVENT"):
+    # Must run before any other import: patches the stdlib (socket, ssl,
+    # threading, ...) so blocking calls elsewhere (e.g. the MCP calendar
+    # fetch, which can take up to MCP_TOOL_TIMEOUT seconds) cooperate with
+    # gevent's event loop instead of freezing the whole server -- without
+    # this, one slow request blocks every other connected client (dashboard
+    # AND Fernbedienung), which is exactly the "two remote controls break
+    # it" symptom this fixes.
+    from gevent import monkey
+
+    monkey.patch_all()
+
+import logging
 import socket
 
 from backend import create_app, socketio
